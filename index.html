@@ -1,0 +1,1702 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Умный чек покупок</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  :root {
+    --bg-body: #f4f6f9;
+    --panel-bg: #ffffff;
+    --panel-text: #1a1a1a;
+    --panel-border: #eaeaea;
+    --input-bg: #f8f9fa;
+    --accent: #000000;
+    --accent-text: #ffffff;
+    --shadow: 0 8px 24px rgba(0,0,0,0.06);
+    --font-ui: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-receipt: 'Courier New', Courier, monospace;
+    --menu-border: #d9d9d9;
+    --menu-hover: #f2f2f2;
+    --menu-shadow: rgba(0, 0, 0, 0.18);
+    --menu-overlay: rgba(0, 0, 0, 0.35);
+  }
+
+  body {
+    font-family: var(--font-ui);
+    background: var(--bg-body); min-height: 100vh; padding: 16px;
+    display: flex; flex-direction: column; align-items: center;
+    color: var(--panel-text);
+  }
+
+  .page-content {
+    width: 100%;
+    display: flex; flex-direction: column; align-items: center;
+    transition: filter 0.28s ease;
+  }
+
+  body.screenshot-blur .page-content {
+    filter: blur(24px);
+    transition: filter 0.05s ease;
+    pointer-events: none;
+    user-select: none;
+  }
+
+  .app-header {
+    width: 100%; max-width: 420px;
+    display: flex; align-items: center; justify-content: flex-start;
+    margin-bottom: 16px;
+  }
+
+  .menu-btn {
+    width: 44px; height: 44px;
+    display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 5px;
+    background: transparent; border: 1px solid var(--menu-border); border-radius: 8px;
+    cursor: pointer; padding: 0; color: var(--panel-text);
+    transition: background 0.15s; flex-shrink: 0;
+  }
+  .menu-btn:hover { background: var(--menu-hover); }
+  .menu-btn span { display: block; width: 22px; height: 2px; background: currentColor; border-radius: 2px; }
+
+  .top-controls {
+    width: 100%; max-width: 420px;
+    display: flex; justify-content: space-between; gap: 8px; margin-bottom: 16px;
+  }
+  .top-controls button {
+    flex: 1; padding: 12px; border-radius: 8px; font-weight: 600; font-size: 14px;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    cursor: pointer; border: none; transition: transform 0.1s; font-family: var(--font-ui);
+  }
+  .top-controls button:active { transform: scale(0.97); }
+  .btn-save { background: var(--accent); color: var(--accent-text); }
+
+  .receipt-wrapper { width: 100%; max-width: 420px; }
+  .receipt {
+    background: #ffffff; color: #000000;
+    padding: 24px; position: relative; box-shadow: 0 10px 30px rgba(0,0,0,0.15); margin-bottom: 24px;
+    border-radius: 12px; font-family: var(--font-receipt);
+  }
+  .receipt::after {
+    content: ''; position: absolute; bottom: -8px; left: 0; right: 0; height: 8px; background-size: 16px 16px;
+    background-image: radial-gradient(circle at 8px 0, transparent 8px, #ffffff 9px);
+  }
+  .receipt-header { text-align: center; margin-bottom: 20px; border-bottom: 2px dashed #e0e0e0; padding-bottom: 16px; }
+  .receipt-header h1 { font-size: 20px; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 6px; font-weight: 700; color: #000; }
+  .receipt-header p { font-size: 12px; color: #666; }
+
+  .receipt-watermark {
+    position: absolute; bottom: 8px; right: 12px;
+    font-size: 12px; font-weight: 700; color: rgba(0,0,0,0.4);
+    font-family: var(--font-receipt);
+    pointer-events: none; user-select: none;
+  }
+
+  .toggle-catalog-btn {
+    width: 100%; padding: 10px; margin-bottom: 8px; background: #ffffff; color: #000;
+    border: 1px solid #e0e0e0; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;
+  }
+  .catalog-wrapper { display: block; }
+  .catalog-wrapper.hidden { display: none; }
+
+  .search-box { display: flex; gap: 8px; margin-bottom: 8px; }
+  .search-box input {
+    flex: 1; padding: 12px 14px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 15px; background: #ffffff; color: #000; outline: none;
+  }
+  .search-box input:focus { border-color: #000; }
+
+  .catalog {
+    max-height: 220px; overflow-y: auto; border: 1px solid #e0e0e0; border-radius: 8px; background: #ffffff;
+  }
+  .catalog-item {
+    padding: 12px 14px; border-bottom: 1px solid #e0e0e0; display: flex; justify-content: space-between;
+    cursor: pointer; font-size: 14px; color: #000; gap: 8px;
+  }
+  .catalog-item:last-child { border-bottom: none; }
+  .catalog-item:hover { background: #f9f9f9; }
+  .catalog-item .price { font-weight: 700; white-space: nowrap; }
+  .catalog-name { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .catalog-details { font-size: 11px; color: #888; font-style: italic; }
+  .weight-badge {
+    font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+    padding: 2px 6px; border-radius: 4px; background: #000; color: #fff;
+  }
+  .approx-badge {
+    font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px;
+    padding: 1px 4px; border-radius: 3px; background: #f0f0f0; color: #888; margin-left: 4px;
+  }
+  .catalog-empty { padding: 20px; text-align: center; color: #666; font-size: 13px; }
+
+  .manual-input {
+    display: none; flex-direction: column; gap: 12px; background: #ffffff; border: 1px solid #e0e0e0; padding: 16px; border-radius: 10px; margin-bottom: 16px;
+  }
+  .manual-input.show { display: flex; }
+  .manual-row { display: flex; gap: 8px; align-items: center; }
+  .manual-row input[type="text"] {
+    flex: 1; padding: 12px; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 14px; background: #ffffff; color: #000; outline: none;
+  }
+
+  .price-wrap { display: flex; flex-direction: column; gap: 10px; width: 100%; }
+  .price-top { display: flex; align-items: center; gap: 10px; color: #000; }
+  .price-top input[type="number"] {
+    width: 100px; padding: 10px; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 15px; text-align: right; font-weight: 700; color: #000;
+  }
+
+  input[type="range"] { -webkit-appearance: none; width: 100%; height: 8px; background: #e0e0e0; border-radius: 4px; }
+  input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 24px; height: 24px; background: #000; border-radius: 50%; cursor: pointer; }
+
+  .qty-wrap { display: flex; align-items: center; gap: 10px; background: #ffffff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 4px; }
+  .qty-btn { width: 36px; height: 36px; background: #f8f9fa; border: none; border-radius: 6px; font-size: 20px; font-weight: 700; cursor: pointer; color: #000; }
+  .qty-val { flex: 1; text-align: center; font-weight: 700; font-size: 16px; color: #000; }
+
+  .manual-actions { display: flex; gap: 10px; margin-top: 8px; flex-direction: column;}
+
+  .btn-submit { padding: 12px; background: #4caf50; color: #fff; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; width: 100%; font-size: 14px; }
+  .btn-cancel { padding: 12px; background: #ffffff; color: #000; border: 1px solid #e0e0e0; border-radius: 8px; font-weight: 700; cursor: pointer; width: 100%; font-size: 14px; }
+
+  .receipt ul { list-style: none; }
+  .receipt li { display: flex; align-items: flex-start; gap: 12px; padding: 12px 0; border-bottom: 1px dashed #e0e0e0; color: #000; }
+  .receipt li.done { opacity: 0.4; }
+  .receipt li.done .text { text-decoration: line-through; }
+
+  .checkbox { width: 20px; height: 20px; border: 2px solid #000; flex-shrink: 0; margin-top: 1px; cursor: pointer; border-radius: 4px; display: flex; align-items: center; justify-content: center; }
+  .receipt li.done .checkbox { background: #000; border-color: #000; }
+  .receipt li.done .checkbox::after { content: "✓"; color: #fff; font-size: 14px; font-weight: 700; }
+
+  .content { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+  .top-row { display: flex; justify-content: space-between; align-items: flex-start; }
+  .text { font-weight: 700; cursor: pointer; word-break: break-word; font-size: 15px; flex: 1; }
+
+  .item-controls { display: flex; align-items: center; gap: 4px; background: #ffffff; border: 1px solid #e0e0e0; border-radius: 6px; padding: 2px; }
+  .item-btn { width: 26px; height: 26px; background: #ffffff; border: none; border-radius: 4px; font-size: 16px; font-weight: 700; cursor: pointer; color: #000; }
+  .item-btn:hover { background: #f0f0f0; }
+  .item-qty { min-width: 20px; text-align: center; font-weight: 700; font-size: 13px; color: #000; }
+
+  .calc-row { display: flex; justify-content: space-between; color: #666; font-size: 13px; }
+  .calc-left { display: flex; gap: 4px; align-items: center; }
+  .item-total { font-weight: 700; color: #000; font-size: 15px; }
+  .del { background: none; border: none; color: #000; font-size: 22px; cursor: pointer; padding: 0 4px; margin-left: 4px; }
+
+  .item-price-btn {
+    background: none; border: none; padding: 0; cursor: pointer;
+    color: #000; font: inherit; text-decoration: underline dotted;
+    text-underline-offset: 3px; font-weight: 600;
+  }
+  .item-price-btn:hover { opacity: 0.7; }
+
+  .totals { margin-top: 20px; font-size: 15px; }
+  .totals-row { display: flex; justify-content: space-between; margin-bottom: 8px; color: #666; }
+  .totals-row.grand-total { font-size: 20px; font-weight: 800; margin-top: 16px; padding-top: 16px; border-top: 2px solid #000; color: #000; }
+  .qty-info { font-size: 13px; color: #666; text-align: right; margin-bottom: 12px; font-weight: 600; text-transform: uppercase; }
+  .thanks { text-align: center; font-size: 13px; color: #666; margin-top: 24px; font-weight: 600; text-transform: uppercase; }
+
+  .hide-for-screenshot { display: none !important; }
+
+  .modal { position: fixed; inset: 0; background: rgba(0,0,0,.9); display: none; align-items: center; justify-content: center; z-index: 100; }
+  .modal.show { display: flex; }
+  .modal img { max-width: 100%; max-height: 90vh; border-radius: 8px; }
+  .modal .close { position: absolute; top: 20px; right: 20px; background: rgba(255,255,255,.2); color: #fff; width: 44px; height: 44px; border-radius: 50%; font-size: 24px; cursor: pointer; }
+
+  .overlay {
+    position: fixed; inset: 0; background: var(--menu-overlay);
+    opacity: 0; visibility: hidden;
+    transition: opacity 0.25s ease, visibility 0.25s ease;
+    z-index: 90;
+  }
+  .overlay.open { opacity: 1; visibility: visible; }
+
+  .side-menu {
+    position: fixed; top: 0; left: 0; height: 100%;
+    width: 40vw;
+    background: var(--panel-bg);
+    border-right: 1px solid var(--menu-border);
+    box-shadow: 6px 0 20px var(--menu-shadow);
+    transform: translateX(-100%);
+    transition: transform 0.28s ease;
+    z-index: 100;
+    display: flex; flex-direction: column;
+    padding: 16px 0;
+  }
+  .side-menu.open { transform: translateX(0); }
+
+  .side-menu__header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 16px 12px; border-bottom: 1px solid var(--menu-border);
+  }
+  .side-menu__title { font-size: 16px; font-weight: 600; }
+
+  .close-btn {
+    width: 36px; height: 36px;
+    display: flex; align-items: center; justify-content: center;
+    background: transparent; border: none; border-radius: 8px;
+    cursor: pointer; font-size: 22px; line-height: 1; color: var(--panel-text);
+    transition: background 0.15s;
+  }
+  .close-btn:hover { background: var(--menu-hover); }
+
+  .side-menu a {
+    display: block; padding: 12px 16px;
+    color: var(--panel-text); text-decoration: none; font-size: 14px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .side-menu a:hover { background: var(--menu-hover); }
+  .side-menu .divider { height: 1px; background: var(--menu-border); margin: 8px 0; }
+
+  .app-modal {
+    position: fixed; inset: 0;
+    background: var(--menu-overlay);
+    display: none; align-items: center; justify-content: center;
+    z-index: 200; padding: 16px;
+  }
+  .app-modal.show { display: flex; }
+
+  .app-modal__box {
+    width: 100%; max-width: 400px;
+    background: var(--panel-bg);
+    border-radius: 14px;
+    box-shadow: 0 20px 50px rgba(0,0,0,.3);
+    overflow: hidden;
+  }
+  .app-modal__head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 16px; border-bottom: 1px solid var(--menu-border);
+  }
+  .app-modal__title { font-size: 16px; font-weight: 700; }
+  .app-modal__close {
+    width: 32px; height: 32px; border: none; background: transparent;
+    font-size: 22px; line-height: 1; cursor: pointer; border-radius: 8px;
+    color: var(--panel-text);
+  }
+  .app-modal__close:hover { background: var(--menu-hover); }
+  .app-modal__body { padding: 16px; }
+
+  .app-setting {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 0; font-size: 14px; gap: 12px;
+  }
+  .app-setting input { width: 20px; height: 20px; accent-color: #000; cursor: pointer; }
+
+  .app-modal__mail {
+    display: block; padding: 12px; text-align: center;
+    background: #000; color: #fff; text-decoration: none;
+    border-radius: 8px; font-weight: 700; font-size: 14px;
+    word-break: break-all;
+  }
+
+  .app-lang {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 0; font-size: 15px; cursor: pointer;
+    border-bottom: 1px solid #eee;
+  }
+  .app-lang:last-of-type { border-bottom: none; }
+  .app-lang input { width: 18px; height: 18px; accent-color: #000; cursor: pointer; }
+
+  .seed-btn {
+    margin-top: 14px; width: 100%; padding: 12px;
+    background: #000; color: #fff; border: none; border-radius: 8px;
+    font-weight: 700; cursor: pointer; font-size: 14px;
+  }
+  .seed-hint { font-size: 12px; color: #888; margin-top: 8px; }
+
+  .price-edit-modal {
+    position: fixed; inset: 0; background: var(--menu-overlay);
+    display: none; align-items: center; justify-content: center;
+    z-index: 300; padding: 16px;
+  }
+  .price-edit-modal.show { display: flex; }
+  .price-edit-box {
+    width: 100%; max-width: 340px; background: var(--panel-bg);
+    border-radius: 14px; padding: 18px; box-shadow: 0 20px 50px rgba(0,0,0,.3);
+  }
+  .price-edit-title { font-size: 15px; font-weight: 700; margin-bottom: 12px; }
+  .price-edit-input {
+    width: 100%; padding: 12px; font-size: 18px; font-weight: 700; text-align: right;
+    border: 2px solid #e0e0e0; border-radius: 8px; outline: none; margin-bottom: 12px;
+    color: #000; background: #fff;
+  }
+  .price-edit-input:focus { border-color: #000; }
+  .price-edit-actions { display: flex; flex-direction: column; gap: 8px; }
+  .price-edit-save { padding: 12px; background: #4caf50; color: #fff; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; }
+  .price-edit-db { padding: 12px; background: #000; color: #fff; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; }
+  .price-edit-cancel { padding: 12px; background: #fff; color: #000; border: 1px solid #e0e0e0; border-radius: 8px; font-weight: 700; cursor: pointer; }
+
+  .weight-modal {
+    position: fixed; inset: 0; background: var(--menu-overlay);
+    display: none; align-items: center; justify-content: center;
+    z-index: 300; padding: 16px;
+  }
+  .weight-modal.show { display: flex; }
+  .weight-box {
+    width: 100%; max-width: 340px; background: var(--panel-bg);
+    border-radius: 14px; padding: 18px; box-shadow: 0 20px 50px rgba(0,0,0,.3);
+  }
+  .weight-title { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+  .weight-subtitle { font-size: 12px; color: #888; margin-bottom: 12px; }
+
+  .unit-toggle {
+    display: flex; gap: 0; margin-bottom: 12px;
+    background: #f1f1f1; border-radius: 8px; padding: 3px;
+  }
+  .unit-toggle button {
+    flex: 1; padding: 8px; border: none; background: transparent;
+    font-weight: 700; font-size: 13px; cursor: pointer; color: #666;
+    border-radius: 6px;
+  }
+  .unit-toggle button.active {
+    background: #000; color: #fff;
+  }
+
+  .unit-toggle--small {
+    display: flex; gap: 0; margin: 0;
+    background: #f1f1f1; border-radius: 8px; padding: 3px;
+  }
+  .unit-toggle--small button {
+    padding: 6px 12px; border: none; background: transparent;
+    font-weight: 700; font-size: 13px; cursor: pointer; color: #666;
+    border-radius: 6px; min-width: 40px;
+  }
+  .unit-toggle--small button.active {
+    background: #000; color: #fff;
+  }
+
+  .weight-input-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .weight-input {
+    flex: 1; padding: 12px; font-size: 18px; font-weight: 700; text-align: right;
+    border: 2px solid #e0e0e0; border-radius: 8px; outline: none; color: #000; background: #fff;
+  }
+  .weight-input:focus { border-color: #000; }
+  .weight-unit { font-size: 14px; font-weight: 700; color: #000; }
+  .weight-chips { display: flex; gap: 6px; margin-bottom: 12px; }
+  .weight-chip {
+    flex: 1; padding: 8px 4px; font-size: 13px; font-weight: 600; cursor: pointer;
+    background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 6px; color: #000;
+  }
+  .weight-chip:hover { background: #efefef; }
+  .weight-result {
+    padding: 12px; background: #f8f9fa; border-radius: 8px;
+    font-size: 15px; font-weight: 700; color: #000; text-align: center; margin-bottom: 12px;
+  }
+  .weight-add-info {
+    padding: 10px 12px;
+    background: #eef7ee;
+    border: 1px solid #cfe8cf;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #1b5e20;
+    text-align: center;
+    margin-bottom: 12px;
+  }
+  .weight-actions { display: flex; flex-direction: column; gap: 8px; }
+  .weight-save { padding: 12px; background: #4caf50; color: #fff; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; }
+  .weight-save-db { padding: 12px; background: #000; color: #fff; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; }
+  .weight-cancel { padding: 12px; background: #fff; color: #000; border: 1px solid #e0e0e0; border-radius: 8px; font-weight: 700; cursor: pointer; }
+</style>
+</head>
+<body>
+
+<div class="page-content" id="pageContent">
+
+  <header class="app-header">
+    <button class="menu-btn" id="menuBtn" aria-label="Меню" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </header>
+
+  <div class="top-controls">
+    <button class="btn-save" id="saveBtn" onclick="takeScreenshot()" style="width:100%">📸 Сохранить чек</button>
+  </div>
+
+  <div class="receipt-wrapper">
+    <div class="receipt" id="receiptToCapture">
+      <div class="receipt-header">
+        <h1 id="receiptTitle">КАССОВЫЙ ЧЕК</h1>
+        <p id="dateTime"></p>
+      </div>
+
+      <button class="toggle-catalog-btn" id="toggleCatalogBtn" onclick="toggleCatalog()">
+        🔽 Свернуть список продуктов
+      </button>
+
+      <div class="catalog-wrapper" id="catalogWrapper">
+        <div class="search-section" id="searchSec">
+          <div class="search-box">
+            <input type="text" id="searchInput" placeholder="Поиск продукта..." autocomplete="off">
+          </div>
+          <div class="catalog" id="catalog"></div>
+        </div>
+
+        <div class="manual-input" id="manualInput">
+          <div class="manual-row">
+            <input type="text" id="mName" placeholder="Название продукта" autocomplete="off">
+          </div>
+          <div class="manual-row">
+            <input type="text" id="mBrand" placeholder="Бренд (необязательно)" autocomplete="off">
+          </div>
+          <div class="manual-row">
+            <input type="text" id="mFlavor" placeholder="Вкус (необязательно)" autocomplete="off">
+          </div>
+
+          <div class="manual-row" style="flex-direction: column; align-items: stretch; gap: 6px;">
+            <span style="font-size: 13px; color: #666; font-weight: 600;" id="manualUnitLabel">Единица:</span>
+            <div class="unit-toggle" id="manualUnitToggle" style="margin-bottom: 0;">
+              <button type="button" data-unit="pcs" class="active" id="manualUnitPcs">за 1 шт</button>
+              <button type="button" data-unit="kg" id="manualUnitKg">за 1 кг</button>
+              <button type="button" data-unit="100g" id="manualUnit100g">за 100 г</button>
+            </div>
+          </div>
+
+          <div class="price-wrap">
+            <div class="price-top">
+              <span id="priceLabel">Цена:</span>
+              <input type="number" id="mPrice" placeholder="0" min="0" step="0.01" value="0">
+              <span id="manualCurrencyLabel">₽</span>
+            </div>
+            <input type="range" id="mPriceRange" min="0" max="1500" step="1" value="0">
+          </div>
+          <div class="manual-row" style="justify-content: space-between;">
+            <span id="qtyLabel" style="font-weight:600;">Количество:</span>
+            <div class="qty-wrap">
+              <button class="qty-btn" onclick="changeQty(-1)">−</button>
+              <span class="qty-val" id="mQtyVal">1</span>
+              <button class="qty-btn" onclick="changeQty(1)">+</button>
+            </div>
+          </div>
+
+          <div class="manual-actions">
+            <button class="btn-submit" id="btnSubmit" onclick="addManualItem()">🛒 Добавить в чек</button>
+            <button class="btn-cancel" id="btnCancel" onclick="toggleManualInput(false)">Отмена</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+      <ul id="list"></ul>
+
+      <div class="totals" id="totals" style="display:none">
+        <div class="qty-info"><span id="totalQtyLabel">Итого позиций:</span> <span id="totalQty">0</span></div>
+        <div class="totals-row"><span id="sumAllLabel">Сумма без скидки:</span><span id="sumAll">0 ₽</span></div>
+        <div class="totals-row grand-total"><span id="sumLeftLabel">К оплате:</span><span id="sumLeft">0 ₽</span></div>
+      </div>
+
+      <div class="thanks" id="thanksEl">Спасибо за покупку!</div>
+      <div class="receipt-watermark" id="receiptWatermark"></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="overlay" id="overlay"></div>
+
+<nav class="side-menu" id="sideMenu" aria-hidden="true">
+  <div class="side-menu__header">
+    <div class="side-menu__title" id="menuTitle">Меню</div>
+    <button class="close-btn" id="closeBtn" aria-label="Закрыть">×</button>
+  </div>
+
+  <a href="#" data-menu="settings" id="menuSettings">Настройки</a>
+  <a href="#" data-menu="support" id="menuSupport">Поддержка</a>
+  <div class="divider"></div>
+  <a href="#" data-menu="language" id="menuLanguage">Язык приложения</a>
+</nav>
+
+<div class="app-modal" id="modalSettings">
+  <div class="app-modal__box">
+    <div class="app-modal__head">
+      <div class="app-modal__title" id="settingsTitle">Настройки</div>
+      <button class="app-modal__close" onclick="closeAppModal('modalSettings')">×</button>
+    </div>
+    <div class="app-modal__body">
+      <label class="app-setting">
+        <span id="settingThanksLabel">Показывать «Спасибо за покупку!»</span>
+        <input type="checkbox" id="settingThanks" checked>
+      </label>
+      <label class="app-setting">
+        <span id="settingAutosaveLabel">Автосохранение чека</span>
+        <input type="checkbox" id="settingAutosave" checked>
+      </label>
+      <p id="settingsHint" style="font-size:12px;color:#888;margin-top:12px;">Настройки сохраняются на этом устройстве.</p>
+
+      <button class="seed-btn" id="btnSeedCatalog" onclick="seedCatalog()">⬆️ Загрузить базовый каталог в Firebase</button>
+      <p class="seed-hint" id="seedHint">Одноразово добавит продукты в общую базу.</p>
+    </div>
+  </div>
+</div>
+
+<div class="app-modal" id="modalSupport">
+  <div class="app-modal__box">
+    <div class="app-modal__head">
+      <div class="app-modal__title" id="supportTitle">Поддержка</div>
+      <button class="app-modal__close" onclick="closeAppModal('modalSupport')">×</button>
+    </div>
+    <div class="app-modal__body">
+      <p id="supportText" style="margin-bottom:12px;font-size:14px;">Возникли вопросы или нашли баг? Напишите нам:</p>
+      <a class="app-modal__mail" href="mailto:umpelevnikita@yandex.ru?subject=Поддержка%20приложения%20Умный%20чек">
+        ✉️ umpelevnikita@yandex.ru
+      </a>
+    </div>
+  </div>
+</div>
+
+<div class="app-modal" id="modalLanguage">
+  <div class="app-modal__box">
+    <div class="app-modal__head">
+      <div class="app-modal__title" id="languageTitle">Язык приложения</div>
+      <button class="app-modal__close" onclick="closeAppModal('modalLanguage')">×</button>
+    </div>
+    <div class="app-modal__body">
+      <label class="app-lang">
+        <input type="radio" name="lang" value="ru" checked>
+        <span id="langRuLabel">Русский</span>
+      </label>
+      <label class="app-lang">
+        <input type="radio" name="lang" value="en">
+        <span id="langEnLabel">English</span>
+      </label>
+      <p id="languageHint" style="font-size:12px;color:#888;margin-top:12px;">Выбор языка применяется ко всему интерфейсу.</p>
+    </div>
+  </div>
+</div>
+
+<div class="price-edit-modal" id="priceEditModal">
+  <div class="price-edit-box">
+    <div class="price-edit-title" id="priceEditTitle">Изменить цену</div>
+    <input type="number" class="price-edit-input" id="priceEditInput" min="0" step="0.01" value="0">
+    <div class="price-edit-actions">
+      <button class="price-edit-save" id="priceEditSave">Сохранить в чек</button>
+      <button class="price-edit-db" id="priceEditSaveDb">Сохранить в чек + обновить базу</button>
+      <button class="price-edit-cancel" id="priceEditCancel">Отмена</button>
+    </div>
+  </div>
+</div>
+
+<div class="weight-modal" id="weightModal">
+  <div class="weight-box">
+    <div class="weight-title" id="weightTitle">Укажите вес</div>
+    <div class="weight-subtitle" id="weightSubtitle"></div>
+
+    <div class="unit-toggle" id="unitToggle">
+      <button type="button" data-unit="100g" class="active" id="unitBtn100">за 100 г</button>
+      <button type="button" data-unit="1kg" id="unitBtn1000">за 1 кг</button>
+    </div>
+
+    <div class="weight-input-row">
+      <span class="weight-unit" id="weightPriceLabel">Цена:</span>
+      <input type="number" class="weight-input" id="weightPriceInput" min="0" step="0.01" value="0">
+      <span class="weight-unit" id="weightPriceUnitLabel">₽ / 100 г</span>
+    </div>
+
+    <div class="weight-input-row">
+      <span class="weight-unit" id="weightGramsLabel">Вес:</span>
+      <input type="number" class="weight-input" id="weightInput" min="0.001" step="0.001" value="1000">
+      <div class="unit-toggle--small" id="weightUnitToggle">
+        <button type="button" data-wunit="g" class="active" id="weightUnitBtnG">г</button>
+        <button type="button" data-wunit="kg" id="weightUnitBtnKg">кг</button>
+      </div>
+    </div>
+
+    <div class="weight-chips">
+      <button class="weight-chip" onclick="setWeight(100)">100 г</button>
+      <button class="weight-chip" onclick="setWeight(250)">250 г</button>
+      <button class="weight-chip" onclick="setWeight(500)">500 г</button>
+      <button class="weight-chip" onclick="setWeight(1000)">1 кг</button>
+    </div>
+    <div class="weight-result" id="weightResult">0 ₽</div>
+    <div class="weight-add-info" id="weightAddInfo">Добавляется: 0 г (0 кг)</div>
+    <div class="weight-actions">
+      <button class="weight-save" id="weightSave">Добавить в чек</button>
+      <button class="weight-save-db" id="weightSaveDb">Добавить + обновить базу</button>
+      <button class="weight-cancel" id="weightCancel">Отмена</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="photoModal" onclick="closePhoto(event)">
+  <button class="close" onclick="closePhoto(event)">×</button>
+  <img id="photoModalImg" src="" alt="">
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getDatabase, ref, onValue, push, set } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyA6QQEiTHsuoAyRXmjg2e4mhD6WKsMRu58",
+  authDomain: "spisok-171a4.firebaseapp.com",
+  databaseURL: "https://spisok-171a4-default-rtdb.firebaseio.com",
+  projectId: "spisok-171a4",
+  storageBucket: "spisok-171a4.firebasestorage.app",
+  messagingSenderId: "628743904838",
+  appId: "1:628743904838:web:0823fe9a5e5a558d95b447"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+/* ---------- Локальный справочник (только штучные) ---------- */
+const LOCAL_DB = [
+  { name: 'хлеб белый', brand: 'Каравай', flavor: '', price: 45, unit: 'pcs' },
+  { name: 'хлеб чёрный', brand: 'Бородинский', flavor: '', price: 50, unit: 'pcs' },
+  { name: 'батон', brand: 'Нарезной', flavor: '', price: 40, unit: 'pcs' },
+  { name: 'молоко', brand: 'Простоквашино', flavor: '2.5%', price: 85, unit: 'pcs' },
+  { name: 'молоко', brand: 'Домик в деревне', flavor: '3.2%', price: 90, unit: 'pcs' },
+  { name: 'кефир', brand: 'Домик в деревне', flavor: '1%', price: 80, unit: 'pcs' },
+  { name: 'сметана', brand: 'Простоквашино', flavor: '20%', price: 90, unit: 'pcs' },
+  { name: 'творог', brand: 'Савушкин', flavor: '5%', price: 120, unit: 'pcs' },
+  { name: 'сыр', brand: 'Российский', flavor: '', price: 320, unit: 'pcs' },
+  { name: 'сыр', brand: 'Брест-Литовск', flavor: 'Тильзитер', price: 169, unit: 'pcs' },
+  { name: 'сыр', brand: 'Hochland', flavor: 'Чизбургер', price: 108, unit: 'pcs' },
+  { name: 'масло сливочное', brand: 'Простоквашино', flavor: '82.5%', price: 180, unit: 'pcs' },
+  { name: 'йогурт', brand: 'Actimel', flavor: 'клубника', price: 65, unit: 'pcs' },
+  { name: 'йогурт', brand: 'Чудо', flavor: 'персик-маракуйя', price: 65, unit: 'pcs' },
+  { name: 'сырок', brand: 'Простоквашино', flavor: 'ваниль', price: 50, unit: 'pcs' },
+  { name: 'сырок', brand: 'Простоквашино', flavor: 'шоколад', price: 55, unit: 'pcs' },
+  { name: 'сырок', brand: 'Савушкин', flavor: 'ваниль', price: 36, unit: 'pcs' },
+  { name: 'сырок', brand: 'Чудо', flavor: 'кокос', price: 37, unit: 'pcs' },
+  { name: 'курица', brand: 'Петелинка', flavor: 'тушка', price: 250, unit: 'pcs' },
+  { name: 'куриная грудка', brand: 'Петелинка', flavor: '', price: 320, unit: 'pcs' },
+  { name: 'фарш', brand: 'Микоян', flavor: 'свинина-говядина', price: 300, unit: 'pcs' },
+  { name: 'колбаса', brand: 'Вязанка', flavor: 'Докторская', price: 160, unit: 'pcs' },
+  { name: 'сосиски', brand: 'Вязанка', flavor: 'Молокуши', price: 140, unit: 'pcs' },
+  { name: 'пельмени', brand: 'Сам Самыч', flavor: '', price: 350, unit: 'pcs' },
+  { name: 'рыба', brand: '', flavor: 'минтай', price: 300, unit: 'pcs' },
+  { name: 'лосось', brand: '', flavor: '', price: 900, unit: 'pcs' },
+  { name: 'креветки', brand: 'Морская планета', flavor: '', price: 600, unit: 'pcs' },
+  { name: 'рис', brand: 'Мистраль', flavor: 'длиннозерный', price: 90, unit: 'pcs' },
+  { name: 'гречка', brand: 'Увелка', flavor: '', price: 85, unit: 'pcs' },
+  { name: 'макароны', brand: 'Макфа', flavor: 'рожки', price: 75, unit: 'pcs' },
+  { name: 'овсянка', brand: 'Геркулес', flavor: '', price: 70, unit: 'pcs' },
+  { name: 'мука', brand: 'Макфа', flavor: 'пшеничная', price: 60, unit: 'pcs' },
+  { name: 'сахар', brand: 'Русский сахар', flavor: '', price: 65, unit: 'pcs' },
+  { name: 'соль', brand: 'Тыретская', flavor: '', price: 25, unit: 'pcs' },
+  { name: 'вода', brand: 'Святой источник', flavor: 'негазированная', price: 40, unit: 'pcs' },
+  { name: 'вода минеральная', brand: 'Боржоми', flavor: '', price: 55, unit: 'pcs' },
+  { name: 'сок', brand: 'Добрый', flavor: 'апельсин', price: 110, unit: 'pcs' },
+  { name: 'чай', brand: 'Lipton', flavor: 'чёрный', price: 150, unit: 'pcs' },
+  { name: 'кофе', brand: 'Nescafe', flavor: 'классик', price: 450, unit: 'pcs' },
+  { name: 'кофе', brand: 'Nescafe', flavor: 'Голд', price: 500, unit: 'pcs' },
+  { name: 'энергетик', brand: 'Adrenaline Rush', flavor: '', price: 120, unit: 'pcs' },
+  { name: 'кола', brand: 'Coca-Cola', flavor: '', price: 90, unit: 'pcs' },
+  { name: 'пиво', brand: 'Балтика', flavor: '7', price: 150, unit: 'pcs' },
+  { name: 'чипсы', brand: 'Lays', flavor: 'сметана и лук', price: 120, unit: 'pcs' },
+  { name: 'чипсы', brand: 'Dr.Korner', flavor: 'сметана и лук', price: 74, unit: 'pcs' },
+  { name: 'шоколад', brand: 'Milka', flavor: 'молочный', price: 150, unit: 'pcs' },
+  { name: 'печенье', brand: 'Юбилейное', flavor: '', price: 80, unit: 'pcs' },
+  { name: 'конфеты', brand: 'Красная шапочка', flavor: '', price: 150, unit: 'pcs' },
+  { name: 'мороженое', brand: 'Gold', flavor: 'пломбир', price: 120, unit: 'pcs' },
+  { name: 'торт', brand: 'Медовик', flavor: '', price: 500, unit: 'pcs' },
+  { name: 'яйца', brand: 'Окское', flavor: 'С1', price: 120, unit: 'pcs' },
+  { name: 'майонез', brand: 'Провансаль', flavor: '', price: 80, unit: 'pcs' },
+  { name: 'кетчуп', brand: 'Heinz', flavor: 'томатный', price: 90, unit: 'pcs' },
+  { name: 'мёд', brand: 'Алтай', flavor: 'липовый', price: 400, unit: 'pcs' },
+  { name: 'орехи', brand: '', flavor: 'грецкие', price: 350, unit: 'pcs' },
+  { name: 'хлопья', brand: 'Nestle', flavor: 'кукурузные', price: 180, unit: 'pcs' }
+];
+
+/* ---------- Весовые (только овощи, фрукты, ягоды) ---------- */
+const WEIGHT_DB = [
+  { name: 'картофель', brand: '', flavor: '', price: 45, unit: 'kg' },
+  { name: 'морковь', brand: '', flavor: '', price: 40, unit: 'kg' },
+  { name: 'лук', brand: '', flavor: '', price: 35, unit: 'kg' },
+  { name: 'помидор', brand: '', flavor: 'розовый', price: 180, unit: 'kg' },
+  { name: 'огурец', brand: '', flavor: '', price: 120, unit: 'kg' },
+  { name: 'перец', brand: '', flavor: 'болгарский', price: 250, unit: 'kg' },
+  { name: 'капуста', brand: '', flavor: 'белокочанная', price: 50, unit: 'kg' },
+  { name: 'свёкла', brand: '', flavor: '', price: 45, unit: 'kg' },
+  { name: 'чеснок', brand: '', flavor: '', price: 300, unit: 'kg' },
+  { name: 'яблоко', brand: '', flavor: 'Голден', price: 130, unit: 'kg' },
+  { name: 'банан', brand: '', flavor: '', price: 110, unit: 'kg' },
+  { name: 'апельсин', brand: '', flavor: '', price: 160, unit: 'kg' },
+  { name: 'лимон', brand: '', flavor: '', price: 200, unit: 'kg' },
+  { name: 'виноград', brand: '', flavor: 'кишмиш', price: 280, unit: 'kg' },
+  { name: 'груша', brand: '', flavor: 'Конференция', price: 190, unit: 'kg' },
+  { name: 'клубника', brand: '', flavor: '', price: 450, unit: 'kg' },
+  { name: 'вишня', brand: '', flavor: '', price: 900, unit: 'kg' },
+  { name: 'черешня', brand: '', flavor: '', price: 1000, unit: 'kg' },
+  { name: 'арбуз', brand: '', flavor: '', price: 40, unit: 'kg' },
+  { name: 'дыня', brand: '', flavor: 'торпеда', price: 120, unit: 'kg' },
+  { name: 'манго', brand: '', flavor: '', price: 350, unit: 'kg' },
+  { name: 'киви', brand: '', flavor: '', price: 220, unit: 'kg' },
+  { name: 'гранат', brand: '', flavor: '', price: 260, unit: 'kg' },
+  { name: 'хурма', brand: '', flavor: '', price: 230, unit: 'kg' },
+  { name: 'малина', brand: '', flavor: '', price: 600, unit: 'kg' }
+];
+
+let globalCatalog = [];
+let currentCurrency = { code: 'RUB', symbol: '₽' };
+let items = [];
+let currentQty = 1;
+let currentLang = localStorage.getItem('app_lang') || 'ru';
+let editingItemId = null;
+let manualUnitMode = 'pcs';
+
+let weightProductName = null;
+let weightBrand = '';
+let weightFlavor = '';
+let weightPricePerKg = 0;
+let weightPriceUnitMode = '100g';
+let weightInputUnit = 'g';
+
+try { items = JSON.parse(localStorage.getItem('shopping_receipt_v20') || '[]'); } catch (e) {}
+function save() { localStorage.setItem('shopping_receipt_v20', JSON.stringify(items)); }
+
+function listenToGlobalCatalog() {
+  const catalogRef = ref(db, 'catalog');
+  onValue(catalogRef, (snapshot) => {
+    const data = snapshot.val() || {};
+    globalCatalog = Object.entries(data).map(([key, val]) => ({
+      id: key, name: val.name, brand: val.brand || '', flavor: val.flavor || '',
+      price: val.avgPrice, count: val.count, unit: val.unit || 'pcs'
+    }));
+    renderCatalog(document.getElementById('searchInput').value);
+  });
+}
+
+function pushToGlobalCatalog(name, brand, flavor, price, unit = 'kg') {
+  const cleanName = name.trim().toLowerCase();
+  if (!cleanName || price <= 0) return;
+  const key = cleanName + '|' + (brand || '').toLowerCase() + '|' + (flavor || '').toLowerCase();
+  const existing = globalCatalog.find(item =>
+    (item.name.toLowerCase() + '|' + (item.brand || '').toLowerCase() + '|' + (item.flavor || '').toLowerCase()) === key
+  );
+  if (existing) {
+    const newCount = existing.count + 1;
+    const newAvg = ((existing.price * existing.count) + price) / newCount;
+    set(ref(db, 'catalog/' + existing.id), {
+      name: existing.name, brand: existing.brand || '', flavor: existing.flavor || '',
+      avgPrice: Math.round(newAvg * 100) / 100, count: newCount, unit: existing.unit || unit
+    });
+  } else {
+    const newRef = push(ref(db, 'catalog'));
+    set(newRef, {
+      name: cleanName, brand: (brand || '').toLowerCase(), flavor: (flavor || '').toLowerCase(),
+      avgPrice: price, count: 1, unit
+    });
+  }
+}
+
+window.seedCatalog = async () => {
+  if (!confirm('Добавить базовый каталог в общую базу Firebase? Уже существующие продукты не изменятся.')) return;
+  const existingKeys = new Set(globalCatalog.map(i =>
+    i.name.toLowerCase() + '|' + (i.brand || '').toLowerCase() + '|' + (i.flavor || '').toLowerCase()
+  ));
+  let added = 0, skipped = 0;
+  for (const item of [...LOCAL_DB, ...WEIGHT_DB]) {
+    const key = item.name.toLowerCase() + '|' + (item.brand || '').toLowerCase() + '|' + (item.flavor || '').toLowerCase();
+    if (existingKeys.has(key)) { skipped++; continue; }
+    const newRef = push(ref(db, 'catalog'));
+    await set(newRef, {
+      name: item.name.toLowerCase(), brand: (item.brand || '').toLowerCase(), flavor: (item.flavor || '').toLowerCase(),
+      avgPrice: item.price, count: 1, unit: item.unit
+    });
+    added++;
+  }
+  alert(`Готово!\nДобавлено: ${added}\nПропущено (уже есть): ${skipped}`);
+};
+
+function updateDate() {
+  const now = new Date();
+  const locale = currentLang === 'en' ? 'en-GB' : 'ru-RU';
+  document.getElementById('dateTime').textContent =
+    now.toLocaleDateString(locale) + ' ' + now.toLocaleTimeString(locale, {hour: '2-digit', minute:'2-digit'});
+}
+
+const T = {
+  ru: {
+    saveBtn: '📸 Сохранить чек', receiptTitle: 'КАССОВЫЙ ЧЕК',
+    toggleHide: '🔽 Свернуть список продуктов', toggleShow: '🔼 Показать список продуктов',
+    searchPlaceholder: 'Поиск продукта...',
+    manualName: 'Название продукта', manualBrand: 'Бренд (необязательно)', manualFlavor: 'Вкус (необязательно)',
+    manualUnit: 'Единица:', unitPcs: 'за 1 шт', unitKg: 'за 1 кг', unit100gShort: 'за 100 г',
+    priceLabel: 'Цена:', qtyLabel: 'Количество:',
+    btnSubmit: '🛒 Добавить в чек', btnCancel: 'Отмена',
+    totalQtyLabel: 'Итого позиций:', sumAllLabel: 'Сумма без скидки:', sumLeftLabel: 'К оплате:',
+    thanks: 'Спасибо за покупку!', empty: 'Чек пуст', emptyAlert: 'Чек пуст!',
+    nameAlert: 'Введите название продукта', notFound: 'Ничего не найдено.',
+    addManually: 'Добавить вручную',
+    qtyShort: 'шт.', menuTitle: 'Меню', menuSettings: 'Настройки', menuSupport: 'Поддержка', menuLanguage: 'Язык приложения',
+    settingsTitle: 'Настройки', settingThanks: 'Показывать «Спасибо за покупку!»', settingAutosave: 'Автосохранение чека',
+    settingsHint: 'Настройки сохраняются на этом устройстве.', seedBtn: '⬆️ Загрузить базовый каталог в Firebase',
+    seedHint: 'Одноразово добавит продукты в общую базу.', supportTitle: 'Поддержка',
+    supportText: 'Возникли вопросы или нашли баг? Напишите нам:', languageTitle: 'Язык приложения',
+    langRu: 'Русский', langEn: 'English', languageHint: 'Выбор языка применяется ко всему интерфейсу.',
+    priceEditTitle: 'Изменить цену: ', priceEditSave: 'Сохранить в чек',
+    priceEditSaveDb: 'Сохранить в чек + обновить базу', priceEditCancel: 'Отмена',
+    weightTitle: 'Укажите вес', weightSave: 'Добавить в чек',
+    weightSaveDb: 'Добавить + обновить базу', weightCancel: 'Отмена',
+    weightUnitG: 'г', weightUnitKg: 'кг', weightPriceLabel: 'Цена:', weightGramsLabel: 'Вес:',
+    per100g: '₽ / 100 г', per1kg: '₽ / 1 кг', unit100g: 'за 100 г', unit1kg: 'за 1 кг',
+    gramShort: 'г', error: 'Ошибка: ', fixedPrice: 'Цена из базы',
+    byWeight: 'на вес', adding: 'Добавляется:', approxPrice: '≈ примерная',
+    protectedWm: 'Защищено'
+  },
+  en: {
+    saveBtn: '📸 Save receipt', receiptTitle: 'CASH RECEIPT',
+    toggleHide: '🔽 Hide product list', toggleShow: '🔼 Show product list',
+    searchPlaceholder: 'Search product...',
+    manualName: 'Product name', manualBrand: 'Brand (optional)', manualFlavor: 'Flavor (optional)',
+    manualUnit: 'Unit:', unitPcs: 'per 1 pc', unitKg: 'per 1 kg', unit100gShort: 'per 100 g',
+    priceLabel: 'Price:', qtyLabel: 'Quantity:',
+    btnSubmit: '🛒 Add to receipt', btnCancel: 'Cancel',
+    totalQtyLabel: 'Total items:', sumAllLabel: 'Subtotal:', sumLeftLabel: 'Total to pay:',
+    thanks: 'Thank you for your purchase!', empty: 'Receipt is empty', emptyAlert: 'Receipt is empty!',
+    nameAlert: 'Please enter a product name', notFound: 'Nothing found.',
+    addManually: 'Add manually',
+    qtyShort: 'pcs.', menuTitle: 'Menu', menuSettings: 'Settings', menuSupport: 'Support', menuLanguage: 'App language',
+    settingsTitle: 'Settings', settingThanks: 'Show "Thank you for your purchase!"', settingAutosave: 'Receipt autosave',
+    settingsHint: 'Settings are saved on this device.', seedBtn: '⬆️ Upload base catalog to Firebase',
+    seedHint: 'One-time add of products to the shared database.', supportTitle: 'Support',
+    supportText: 'Have questions or found a bug? Write to us:', languageTitle: 'App language',
+    langRu: 'Русский', langEn: 'English', languageHint: 'The selected language applies to the entire interface.',
+    priceEditTitle: 'Edit price: ', priceEditSave: 'Save to receipt',
+    priceEditSaveDb: 'Save to receipt + update database', priceEditCancel: 'Cancel',
+    weightTitle: 'Enter weight', weightSave: 'Add to receipt',
+    weightSaveDb: 'Add + update database', weightCancel: 'Cancel',
+    weightUnitG: 'g', weightUnitKg: 'kg', weightPriceLabel: 'Price:', weightGramsLabel: 'Weight:',
+    per100g: '₽ / 100 g', per1kg: '₽ / 1 kg', unit100g: 'per 100 g', unit1kg: 'per 1 kg',
+    gramShort: 'g', error: 'Error: ', fixedPrice: 'Price from database',
+    byWeight: 'by weight', adding: 'Adding:', approxPrice: '≈ approx',
+    protectedWm: 'Protected'
+  }
+};
+function t(key) { return (T[currentLang] && T[currentLang][key]) || T.ru[key] || key; }
+
+function applyLanguage(lang) {
+  currentLang = lang;
+  localStorage.setItem('app_lang', lang);
+  document.documentElement.lang = lang;
+
+  document.getElementById('saveBtn').textContent = t('saveBtn');
+  document.getElementById('receiptTitle').textContent = t('receiptTitle');
+
+  const toggleBtn = document.getElementById('toggleCatalogBtn');
+  const isHidden = document.getElementById('catalogWrapper').classList.contains('hidden');
+  toggleBtn.textContent = isHidden ? t('toggleShow') : t('toggleHide');
+
+  document.getElementById('searchInput').placeholder = t('searchPlaceholder');
+  document.getElementById('mName').placeholder = t('manualName');
+  document.getElementById('mBrand').placeholder = t('manualBrand');
+  document.getElementById('mFlavor').placeholder = t('manualFlavor');
+  document.getElementById('manualUnitLabel').textContent = t('manualUnit');
+  document.getElementById('manualUnitPcs').textContent = t('unitPcs');
+  document.getElementById('manualUnitKg').textContent = t('unitKg');
+  document.getElementById('manualUnit100g').textContent = t('unit100gShort');
+  document.getElementById('priceLabel').textContent = t('priceLabel');
+  document.getElementById('qtyLabel').textContent = t('qtyLabel');
+  document.getElementById('btnSubmit').textContent = t('btnSubmit');
+  document.getElementById('btnCancel').textContent = t('btnCancel');
+
+  document.getElementById('totalQtyLabel').textContent = t('totalQtyLabel');
+  document.getElementById('sumAllLabel').textContent = t('sumAllLabel');
+  document.getElementById('sumLeftLabel').textContent = t('sumLeftLabel');
+  document.getElementById('thanksEl').textContent = t('thanks');
+
+  document.getElementById('menuTitle').textContent = t('menuTitle');
+  document.getElementById('menuSettings').textContent = t('menuSettings');
+  document.getElementById('menuSupport').textContent = t('menuSupport');
+  document.getElementById('menuLanguage').textContent = t('menuLanguage');
+
+  document.getElementById('settingsTitle').textContent = t('settingsTitle');
+  document.getElementById('settingThanksLabel').textContent = t('settingThanks');
+  document.getElementById('settingAutosaveLabel').textContent = t('settingAutosave');
+  document.getElementById('settingsHint').textContent = t('settingsHint');
+  document.getElementById('btnSeedCatalog').textContent = t('seedBtn');
+  document.getElementById('seedHint').textContent = t('seedHint');
+
+  document.getElementById('supportTitle').textContent = t('supportTitle');
+  document.getElementById('supportText').textContent = t('supportText');
+
+  document.getElementById('languageTitle').textContent = t('languageTitle');
+  document.getElementById('langRuLabel').textContent = t('langRu');
+  document.getElementById('langEnLabel').textContent = t('langEn');
+  document.getElementById('languageHint').textContent = t('languageHint');
+
+  document.getElementById('priceEditSave').textContent = t('priceEditSave');
+  document.getElementById('priceEditSaveDb').textContent = t('priceEditSaveDb');
+  document.getElementById('priceEditCancel').textContent = t('priceEditCancel');
+
+  document.getElementById('weightTitle').textContent = t('weightTitle');
+  document.getElementById('weightSave').textContent = t('weightSave');
+  document.getElementById('weightSaveDb').textContent = t('weightSaveDb');
+  document.getElementById('weightCancel').textContent = t('weightCancel');
+  document.getElementById('weightPriceLabel').textContent = t('weightPriceLabel');
+  document.getElementById('weightGramsLabel').textContent = t('weightGramsLabel');
+  document.getElementById('unitBtn100').textContent = t('unit100g');
+  document.getElementById('unitBtn1000').textContent = t('unit1kg');
+  document.getElementById('weightUnitBtnG').textContent = t('weightUnitG');
+  document.getElementById('weightUnitBtnKg').textContent = t('weightUnitKg');
+
+  updateWeightUnitLabels();
+  updateDate();
+  renderCatalog(document.getElementById('searchInput').value);
+  render();
+  updateWatermark();
+}
+
+window.toggleCatalog = () => {
+  const wrapper = document.getElementById('catalogWrapper');
+  const btn = document.getElementById('toggleCatalogBtn');
+  if (wrapper.classList.contains('hidden')) {
+    wrapper.classList.remove('hidden');
+    btn.textContent = t('toggleHide');
+  } else {
+    wrapper.classList.add('hidden');
+    btn.textContent = t('toggleShow');
+  }
+}
+
+const searchInput = document.getElementById('searchInput');
+const catalogEl = document.getElementById('catalog');
+
+window.renderCatalog = function(filter = '') {
+  catalogEl.innerHTML = '';
+  const q = filter.trim().toLowerCase();
+
+  const firebaseKeys = new Set(globalCatalog.map(i =>
+    i.name.toLowerCase() + '|' + (i.brand || '').toLowerCase() + '|' + (i.flavor || '').toLowerCase()
+  ));
+
+  const localItems = [...LOCAL_DB, ...WEIGHT_DB]
+    .map(item => ({
+      id: 'local_' + item.name + '_' + (item.brand||'') + '_' + (item.flavor||''),
+      name: item.name, brand: item.brand || '', flavor: item.flavor || '',
+      price: item.price, count: 1, unit: item.unit,
+      isLocalOnly: true
+    }))
+    .filter(item => {
+      const key = item.name.toLowerCase() + '|' + (item.brand || '').toLowerCase() + '|' + (item.flavor || '').toLowerCase();
+      return !firebaseKeys.has(key);
+    });
+
+  const allItems = [...globalCatalog, ...localItems];
+
+  const filtered = allItems
+    .filter(item => (item.name + ' ' + (item.brand||'') + ' ' + (item.flavor||'')).toLowerCase().includes(q))
+    .sort((a, b) => {
+      if (a.isLocalOnly && !b.isLocalOnly) return 1;
+      if (!a.isLocalOnly && b.isLocalOnly) return -1;
+      return b.count - a.count;
+    });
+
+  if (filtered.length === 0) {
+    catalogEl.innerHTML = `<div class="catalog-empty">${t('notFound')}<br><a href="#" onclick="window.openManualWithName('${q.replace(/'/g, "\\'")}'); return false;" style="color:#000; text-decoration:underline;">${t('addManually')}</a></div>`;
+
+    if (q.length > 0 && !manualInput.classList.contains('show')) {
+      openManualWithName(q);
+    }
+    return;
+  }
+
+  filtered.forEach(item => {
+    const div = document.createElement('div');
+    div.className = 'catalog-item';
+    const isWeight = item.unit === 'kg';
+    const badge = isWeight ? `<span class="weight-badge">${t('byWeight')}</span>` : '';
+    const details = [item.brand, item.flavor].filter(Boolean).join(', ');
+    const detailsHtml = details ? `<span class="catalog-details">${details}</span>` : '';
+    const priceText = isWeight
+      ? `${formatPrice(item.price / 10)} / 100 ${t('gramShort')}`
+      : formatPrice(item.price);
+    const approxMark = item.isLocalOnly ? ` <span class="approx-badge">${t('approxPrice')}</span>` : '';
+
+    div.innerHTML = `
+      <span class="catalog-name">${item.name}${badge}${detailsHtml}</span>
+      <span class="price">${priceText}${approxMark}</span>
+    `;
+    div.onclick = () => {
+      if (isWeight) openWeightModal(item.name, item.brand, item.flavor, item.price);
+      else addFromCatalog(item);
+    };
+    catalogEl.appendChild(div);
+  });
+}
+
+searchInput.addEventListener('input', (e) => renderCatalog(e.target.value));
+
+function addFromCatalog(item) {
+  items.push({
+    id: 'i_' + Date.now() + '_' + Math.random().toString(36).slice(2,6),
+    text: item.name, brand: item.brand || '', flavor: item.flavor || '',
+    price: item.price, qty: 1, unit: item.unit || 'pcs',
+    done: false, photo: null, createdAt: Date.now()
+  });
+  save(); render(); searchInput.value = ''; renderCatalog(''); searchInput.blur();
+}
+
+/* ---------- Модалка веса ---------- */
+const weightModal = document.getElementById('weightModal');
+const weightInput = document.getElementById('weightInput');
+const weightPriceInput = document.getElementById('weightPriceInput');
+const weightResult = document.getElementById('weightResult');
+const weightSubtitle = document.getElementById('weightSubtitle');
+const weightPriceUnitLabel = document.getElementById('weightPriceUnitLabel');
+const unitBtn100 = document.getElementById('unitBtn100');
+const unitBtn1000 = document.getElementById('unitBtn1000');
+const weightUnitBtnG = document.getElementById('weightUnitBtnG');
+const weightUnitBtnKg = document.getElementById('weightUnitBtnKg');
+
+function updateWeightUnitLabels() {
+  if (!weightPriceUnitMode) weightPriceUnitMode = '100g';
+  if (weightPriceUnitMode === '100g') {
+    weightPriceUnitLabel.textContent = t('per100g');
+    unitBtn100.classList.add('active');
+    unitBtn1000.classList.remove('active');
+  } else {
+    weightPriceUnitLabel.textContent = t('per1kg');
+    unitBtn1000.classList.add('active');
+    unitBtn100.classList.remove('active');
+  }
+}
+
+function setWeightUnitButtons() {
+  if (weightInputUnit === 'g') {
+    weightUnitBtnG.classList.add('active');
+    weightUnitBtnKg.classList.remove('active');
+  } else {
+    weightUnitBtnKg.classList.add('active');
+    weightUnitBtnG.classList.remove('active');
+  }
+}
+
+function getWeightInGrams() {
+  const raw = parseFloat(weightInput.value) || 0;
+  return weightInputUnit === 'kg' ? raw * 1000 : raw;
+}
+
+window.openWeightModal = (name, brand, flavor, pricePerKgDefault) => {
+  weightProductName = name;
+  weightBrand = brand || '';
+  weightFlavor = flavor || '';
+  weightPricePerKg = Number(pricePerKgDefault) || 0;
+  weightPriceUnitMode = '100g';
+  weightInputUnit = 'g';
+
+  weightInput.value = 1000;
+  weightInput.step = 1;
+  setWeightUnitButtons();
+
+  weightPriceInput.value = Math.round((weightPricePerKg / 10) * 100) / 100;
+  weightSubtitle.textContent = [name, brand, flavor].filter(Boolean).join(' — ') + ' — ' + t('fixedPrice');
+
+  updateWeightUnitLabels();
+  updateWeightResult();
+  weightModal.classList.add('show');
+  setTimeout(() => { weightInput.focus(); weightInput.select(); }, 50);
+};
+
+unitBtn100.addEventListener('click', () => {
+  if (weightPriceUnitMode === '100g') return;
+  weightPriceUnitMode = '100g';
+  weightPriceInput.value = Math.round((weightPricePerKg / 10) * 100) / 100;
+  updateWeightUnitLabels();
+  updateWeightResult();
+});
+unitBtn1000.addEventListener('click', () => {
+  if (weightPriceUnitMode === '1kg') return;
+  weightPriceUnitMode = '1kg';
+  weightPriceInput.value = Math.round(weightPricePerKg * 100) / 100;
+  updateWeightUnitLabels();
+  updateWeightResult();
+});
+
+weightUnitBtnG.addEventListener('click', () => {
+  if (weightInputUnit === 'g') return;
+  const kg = parseFloat(weightInput.value) || 0;
+  weightInputUnit = 'g';
+  weightInput.step = 1;
+  weightInput.value = Math.round(kg * 1000);
+  setWeightUnitButtons();
+  updateWeightResult();
+});
+weightUnitBtnKg.addEventListener('click', () => {
+  if (weightInputUnit === 'kg') return;
+  const g = parseFloat(weightInput.value) || 0;
+  weightInputUnit = 'kg';
+  weightInput.step = 0.001;
+  weightInput.value = Math.round((g / 1000) * 1000) / 1000;
+  setWeightUnitButtons();
+  updateWeightResult();
+});
+
+weightPriceInput.addEventListener('input', () => {
+  const v = parseFloat(weightPriceInput.value) || 0;
+  if (weightPriceUnitMode === '100g') weightPricePerKg = Math.round(v * 10 * 100) / 100;
+  else weightPricePerKg = Math.round(v * 100) / 100;
+  updateWeightResult();
+});
+
+function updateWeightResult() {
+  const grams = Math.max(1, getWeightInGrams());
+  const total = weightPricePerKg * grams / 1000;
+  const shownPrice = weightPriceUnitMode === '100g' ? weightPricePerKg / 10 : weightPricePerKg;
+  const priceUnitShort = weightPriceUnitMode === '100g'
+    ? (currentLang === 'en' ? '100g' : '100г')
+    : (currentLang === 'en' ? '1kg' : '1кг');
+  const weightStr = weightInputUnit === 'kg'
+    ? `${(grams / 1000).toFixed(3).replace(/\.?0+$/, '')} ${t('weightUnitKg')}`
+    : `${Math.round(grams)} ${t('gramShort')}`;
+  weightResult.textContent = `${formatPrice(shownPrice)} / ${priceUnitShort} × ${weightStr} = ${formatPrice(total)}`;
+
+  const g = Math.round(grams);
+  const kg = Math.round((grams / 1000) * 1000) / 1000;
+  const info = document.getElementById('weightAddInfo');
+  if (info) {
+    info.textContent = `${t('adding')} ${g} ${t('gramShort')} (${kg} ${t('weightUnitKg')})`;
+  }
+}
+
+weightInput.addEventListener('input', updateWeightResult);
+
+window.setWeight = (grams) => {
+  if (weightInputUnit === 'kg') {
+    weightInput.value = Math.round((grams / 1000) * 1000) / 1000;
+  } else {
+    weightInput.value = grams;
+  }
+  updateWeightResult();
+};
+
+function closeWeightModal() {
+  weightModal.classList.remove('show');
+  weightProductName = null;
+  weightBrand = '';
+  weightFlavor = '';
+  weightPricePerKg = 0;
+  weightPriceUnitMode = '100g';
+  weightInputUnit = 'g';
+}
+
+function confirmWeight(saveToDb) {
+  if (!weightProductName) return;
+  const grams = Math.max(1, Math.round(getWeightInGrams()));
+  const total = Math.round((weightPricePerKg * grams / 1000) * 100) / 100;
+
+  items.push({
+    id: 'i_' + Date.now() + '_' + Math.random().toString(36).slice(2,6),
+    text: weightProductName, brand: weightBrand, flavor: weightFlavor,
+    price: total, qty: 1, unit: 'g', grams: grams,
+    pricePerKg: weightPricePerKg,
+    inputUnit: weightInputUnit,
+    priceUnitMode: weightPriceUnitMode,
+    done: false, photo: null, createdAt: Date.now()
+  });
+  save(); render();
+
+  if (saveToDb && weightPricePerKg > 0) pushToGlobalCatalog(weightProductName, weightBrand, weightFlavor, weightPricePerKg, 'kg');
+
+  closeWeightModal();
+  searchInput.value = ''; renderCatalog(''); searchInput.blur();
+}
+
+document.getElementById('weightSave').onclick = () => confirmWeight(false);
+document.getElementById('weightSaveDb').onclick = () => confirmWeight(true);
+document.getElementById('weightCancel').onclick = closeWeightModal;
+weightModal.addEventListener('click', (e) => { if (e.target === weightModal) closeWeightModal(); });
+weightInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') confirmWeight(false); });
+weightPriceInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') confirmWeight(false); });
+
+/* ---------- Ручной ввод ---------- */
+const manualInput = document.getElementById('manualInput');
+const mPrice = document.getElementById('mPrice');
+const mPriceRange = document.getElementById('mPriceRange');
+const mQtyVal = document.getElementById('mQtyVal');
+const manualUnitPcs  = document.getElementById('manualUnitPcs');
+const manualUnitKg   = document.getElementById('manualUnitKg');
+const manualUnit100g = document.getElementById('manualUnit100g');
+
+function setManualUnitButtons() {
+  manualUnitPcs.classList.toggle('active', manualUnitMode === 'pcs');
+  manualUnitKg.classList.toggle('active', manualUnitMode === 'kg');
+  manualUnit100g.classList.toggle('active', manualUnitMode === '100g');
+}
+
+manualUnitPcs.addEventListener('click', () => { manualUnitMode = 'pcs'; setManualUnitButtons(); });
+manualUnitKg.addEventListener('click', () => { manualUnitMode = 'kg'; setManualUnitButtons(); });
+manualUnit100g.addEventListener('click', () => { manualUnitMode = '100g'; setManualUnitButtons(); });
+
+window.toggleManualInput = (show = null) => {
+  if (show === null) show = !manualInput.classList.contains('show');
+  if (show) {
+    manualInput.classList.add('show');
+    manualInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setTimeout(() => document.getElementById('mName').focus(), 100);
+  } else {
+    manualInput.classList.remove('show');
+    document.getElementById('mName').value = '';
+    document.getElementById('mBrand').value = '';
+    document.getElementById('mFlavor').value = '';
+    mPrice.value = '0'; mPriceRange.value = '0';
+    currentQty = 1; mQtyVal.textContent = '1';
+    manualUnitMode = 'pcs';
+    setManualUnitButtons();
+    document.activeElement.blur();
+  }
+};
+
+window.openManualWithName = (name) => {
+  manualInput.classList.add('show');
+  manualInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+  const nameEl = document.getElementById('mName');
+  if (name && !nameEl.value) nameEl.value = name;
+
+  document.getElementById('mBrand').value = '';
+  document.getElementById('mFlavor').value = '';
+  mPrice.value = '0';
+  mPriceRange.value = '0';
+  currentQty = 1;
+  mQtyVal.textContent = '1';
+  manualUnitMode = 'pcs';
+  setManualUnitButtons();
+
+  setTimeout(() => {
+    mPrice.focus();
+    mPrice.select();
+  }, 150);
+};
+
+mPriceRange.addEventListener('input', (e) => mPrice.value = e.target.value);
+mPrice.addEventListener('input', (e) => {
+  let val = parseFloat(e.target.value) || 0;
+  if (val < 0) val = 0;
+  if (val > parseFloat(mPriceRange.max)) mPriceRange.max = Math.ceil(val / 100) * 100;
+  mPriceRange.value = val;
+});
+
+window.changeQty = (delta) => {
+  currentQty += delta; if (currentQty < 1) currentQty = 1;
+  mQtyVal.textContent = currentQty;
+}
+
+window.addManualItem = () => {
+  const name = document.getElementById('mName').value.trim();
+  const brand = document.getElementById('mBrand').value.trim();
+  const flavor = document.getElementById('mFlavor').value.trim();
+  const price = parseFloat(mPrice.value) || 0;
+  if (!name) { alert(t('nameAlert')); return; }
+
+  if (manualUnitMode === 'pcs') {
+    items.push({
+      id: 'i_' + Date.now() + '_' + Math.random().toString(36).slice(2,6),
+      text: name, brand, flavor, price, qty: currentQty, unit: 'pcs',
+      done: false, photo: null, createdAt: Date.now()
+    });
+    if (price > 0) pushToGlobalCatalog(name, brand, flavor, price, 'pcs');
+  } else {
+    let grams;
+    let pricePerKg;
+
+    if (manualUnitMode === 'kg') {
+      grams = Math.round(currentQty * 1000);
+      pricePerKg = price;
+    } else {
+      grams = Math.round(currentQty * 100);
+      pricePerKg = price * 10;
+    }
+
+    const total = Math.round((pricePerKg * grams / 1000) * 100) / 100;
+
+    items.push({
+      id: 'i_' + Date.now() + '_' + Math.random().toString(36).slice(2,6),
+      text: name, brand, flavor,
+      price: total, qty: 1, unit: 'g',
+      grams: grams,
+      pricePerKg: pricePerKg,
+      inputUnit: manualUnitMode === 'kg' ? 'kg' : 'g',
+      priceUnitMode: manualUnitMode === 'kg' ? '1kg' : '100g',
+      done: false, photo: null, createdAt: Date.now()
+    });
+
+    if (pricePerKg > 0) pushToGlobalCatalog(name, brand, flavor, pricePerKg, 'kg');
+  }
+
+  save(); render();
+
+  toggleManualInput(false);
+  searchInput.value = '';
+  renderCatalog('');
+};
+
+window.openPhoto = (src) => { document.getElementById('photoModalImg').src = src; document.getElementById('photoModal').classList.add('show'); }
+window.closePhoto = (e) => { if (e) e.stopPropagation(); document.getElementById('photoModal').classList.remove('show'); document.getElementById('photoModalImg').src = ''; }
+
+function toggleItem(id) { const it = items.find(x => x.id === id); if (it) { it.done = !it.done; save(); render(); } }
+function removeItem(id) { items = items.filter(x => x.id !== id); save(); render(); }
+
+window.changeItemQty = (id, delta) => {
+  const it = items.find(x => x.id === id);
+  if (it) {
+    it.qty = (it.qty || 1) + delta;
+    if (it.qty < 1) it.qty = 1;
+    save(); render();
+  }
+}
+
+/* ---------- Редактирование цены ---------- */
+const priceEditModal = document.getElementById('priceEditModal');
+const priceEditInput = document.getElementById('priceEditInput');
+const priceEditTitle = document.getElementById('priceEditTitle');
+
+window.openPriceEdit = (id) => {
+  const it = items.find(x => x.id === id);
+  if (!it) return;
+  editingItemId = id;
+
+  if (it.unit === 'g' && it.pricePerKg) {
+    if (it.priceUnitMode === '1kg') {
+      priceEditTitle.textContent = t('priceEditTitle') + it.text + ' (' + (currentLang === 'en' ? 'per 1 kg' : 'за 1 кг') + ')';
+      priceEditInput.value = Math.round(it.pricePerKg * 100) / 100;
+    } else {
+      priceEditTitle.textContent = t('priceEditTitle') + it.text + ' (' + (currentLang === 'en' ? 'per 100 g' : 'за 100 г') + ')';
+      priceEditInput.value = Math.round((it.pricePerKg / 10) * 100) / 100;
+    }
+  } else {
+    priceEditTitle.textContent = t('priceEditTitle') + it.text;
+    priceEditInput.value = Number(it.price) || 0;
+  }
+  priceEditModal.classList.add('show');
+  setTimeout(() => { priceEditInput.focus(); priceEditInput.select(); }, 50);
+};
+
+function closePriceEdit() {
+  priceEditModal.classList.remove('show');
+  editingItemId = null;
+}
+
+function applyPriceEdit(saveToDb) {
+  if (!editingItemId) return;
+  const it = items.find(x => x.id === editingItemId);
+  if (!it) { closePriceEdit(); return; }
+  const val = parseFloat(priceEditInput.value);
+  if (isNaN(val) || val < 0) { closePriceEdit(); return; }
+
+  if (it.unit === 'g' && it.pricePerKg) {
+    if (it.priceUnitMode === '1kg') {
+      it.pricePerKg = Math.round(val * 100) / 100;
+    } else {
+      it.pricePerKg = Math.round(val * 10 * 100) / 100;
+    }
+    it.price = Math.round((it.pricePerKg * it.grams / 1000) * 100) / 100;
+    if (saveToDb && it.pricePerKg > 0) pushToGlobalCatalog(it.text, it.brand, it.flavor, it.pricePerKg, 'kg');
+  } else {
+    it.price = Math.round(val * 100) / 100;
+    if (saveToDb && it.price > 0) pushToGlobalCatalog(it.text, it.brand, it.flavor, it.price, 'pcs');
+  }
+  save(); render();
+  closePriceEdit();
+}
+
+document.getElementById('priceEditSave').onclick   = () => applyPriceEdit(false);
+document.getElementById('priceEditSaveDb').onclick = () => applyPriceEdit(true);
+document.getElementById('priceEditCancel').onclick = closePriceEdit;
+priceEditModal.addEventListener('click', (e) => { if (e.target === priceEditModal) closePriceEdit(); });
+priceEditInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') applyPriceEdit(false); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closePriceEdit(); closeWeightModal(); } });
+
+/* ---------- Рендер чека ---------- */
+window.render = function() {
+  const list = document.getElementById('list');
+  list.innerHTML = '';
+
+  if (items.length === 0) {
+    list.innerHTML = `<div style="text-align:center;color:#666;padding:20px 0">${t('empty')}</div>`;
+    document.getElementById('totals').style.display = 'none';
+    updateWatermark();
+    return;
+  }
+
+  let sumAll = 0, totalQty = 0, sumLeft = 0;
+
+  items.forEach(item => {
+    const price = Number(item.price) || 0;
+    const qty = Number(item.qty) || 1;
+    const itemTotal = price * qty;
+
+    sumAll += itemTotal; totalQty += qty;
+    if (!item.done) sumLeft += itemTotal;
+
+    const li = document.createElement('li');
+    if (item.done) li.classList.add('done');
+
+    const cb = document.createElement('div');
+    cb.className = 'checkbox';
+    cb.onclick = () => toggleItem(item.id);
+    li.appendChild(cb);
+
+    const content = document.createElement('div');
+    content.className = 'content';
+
+    const topRow = document.createElement('div');
+    topRow.className = 'top-row';
+
+    const textWrap = document.createElement('div');
+    textWrap.style.display = 'flex'; textWrap.style.gap = '8px'; textWrap.style.alignItems = 'center';
+
+    const textEl = document.createElement('div');
+    textEl.className = 'text';
+    const details = [item.brand, item.flavor].filter(Boolean).join(', ');
+    textEl.textContent = item.text + (details ? ' (' + details + ')' : '');
+    textEl.onclick = () => toggleItem(item.id);
+    textWrap.appendChild(textEl);
+    topRow.appendChild(textWrap);
+
+    const controlsWrap = document.createElement('div');
+    controlsWrap.style.display = 'flex'; controlsWrap.style.alignItems = 'center'; controlsWrap.style.gap = '6px';
+
+    const itemCtr = document.createElement('div');
+    itemCtr.className = 'item-controls';
+    if (item.unit === 'g') {
+      const showKg = item.inputUnit === 'kg';
+      const weightStr = showKg
+        ? `${(item.grams / 1000).toFixed(3).replace(/\.?0+$/, '')} ${t('weightUnitKg')}`
+        : `${item.grams} ${t('gramShort')}`;
+      itemCtr.innerHTML = `<span class="item-qty">${weightStr}</span>`;
+    } else {
+      itemCtr.innerHTML = `
+        <button class="item-btn" onclick="event.stopPropagation(); window.changeItemQty('${item.id}', -1)">−</button>
+        <span class="item-qty">${qty}</span>
+        <button class="item-btn" onclick="event.stopPropagation(); window.changeItemQty('${item.id}', 1)">+</button>
+      `;
+    }
+    controlsWrap.appendChild(itemCtr);
+
+    const del = document.createElement('button');
+    del.className = 'del'; del.textContent = '×';
+    del.onclick = (e) => { e.stopPropagation(); removeItem(item.id); };
+    controlsWrap.appendChild(del);
+
+    topRow.appendChild(controlsWrap);
+    content.appendChild(topRow);
+
+    const calcRow = document.createElement('div');
+    calcRow.className = 'calc-row';
+
+    if (item.unit === 'g') {
+      const showKg = item.inputUnit === 'kg';
+      const weightStr = showKg
+        ? `${(item.grams / 1000).toFixed(3).replace(/\.?0+$/, '')} ${t('weightUnitKg')}`
+        : `${item.grams} ${t('gramShort')}`;
+
+      const is1kg = item.priceUnitMode === '1kg';
+      const shownPrice = is1kg ? item.pricePerKg : item.pricePerKg / 10;
+      const priceLabel = is1kg
+        ? `/${t('weightUnitKg')}`
+        : `/100${t('gramShort')}`;
+
+      calcRow.innerHTML = `
+        <span class="calc-left">
+          ${weightStr} ×
+          <button class="item-price-btn" onclick="event.stopPropagation(); window.openPriceEdit('${item.id}')">${formatPrice(shownPrice)}${priceLabel} ✎</button>
+        </span>
+        <span class="item-total">${formatPrice(itemTotal)}</span>
+      `;
+    } else {
+      calcRow.innerHTML = `
+        <span class="calc-left">
+          ${qty} ${t('qtyShort')} ×
+          <button class="item-price-btn" onclick="event.stopPropagation(); window.openPriceEdit('${item.id}')">${formatPrice(price)} ✎</button>
+        </span>
+        <span class="item-total">${formatPrice(itemTotal)}</span>
+      `;
+    }
+    content.appendChild(calcRow);
+    li.appendChild(content);
+    list.appendChild(li);
+  });
+
+  document.getElementById('totals').style.display = 'block';
+  document.getElementById('totalQty').textContent = totalQty;
+  document.getElementById('sumAll').textContent = formatPrice(sumAll);
+  document.getElementById('sumLeft').textContent = formatPrice(sumLeft);
+  updateWatermark();
+}
+
+function formatPrice(n) {
+  const locale = currentLang === 'en' ? 'en-US' : 'ru-RU';
+  const formatted = new Intl.NumberFormat(locale, { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(n);
+  return `${formatted} ${currentCurrency.symbol}`;
+}
+
+/* ---------- Сохранение чека ---------- */
+window.takeScreenshot = function() {
+  if (items.length === 0) { alert(t('emptyAlert')); return; }
+  doScreenshot();
+};
+
+function doScreenshot() {
+  const element = document.getElementById('receiptToCapture');
+  const catalogWrapper = document.getElementById('catalogWrapper');
+  const toggleBtn = document.getElementById('toggleCatalogBtn');
+  const wasHidden = catalogWrapper.classList.contains('hidden');
+  catalogWrapper.classList.add('hide-for-screenshot');
+  toggleBtn.classList.add('hide-for-screenshot');
+  setTimeout(() => {
+    html2canvas(element, { scale: 2, backgroundColor: '#ffffff', useCORS: true, logging: false }).then(canvas => {
+      catalogWrapper.classList.remove('hide-for-screenshot');
+      toggleBtn.classList.remove('hide-for-screenshot');
+      if (wasHidden) catalogWrapper.classList.add('hidden');
+      else catalogWrapper.classList.remove('hidden');
+      const link = document.createElement('a');
+      const dateStr = new Date().toLocaleDateString(currentLang === 'en' ? 'en-GB' : 'ru-RU').replace(/[\.\/]/g, '-');
+      link.download = (currentLang === 'en' ? 'Receipt_' : 'Чек_') + dateStr + '.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    }).catch(err => {
+      catalogWrapper.classList.remove('hide-for-screenshot');
+      toggleBtn.classList.remove('hide-for-screenshot');
+      alert(t('error') + err);
+    });
+  }, 150);
+}
+
+/* ---------- Защита от скриншота ---------- */
+let blurTimer = null;
+const BLUR_DURATION = 300;
+
+function triggerScreenshotBlur(duration = BLUR_DURATION) {
+  document.body.classList.add('screenshot-blur');
+  clearTimeout(blurTimer);
+  blurTimer = setTimeout(() => {
+    document.body.classList.remove('screenshot-blur');
+  }, duration);
+}
+
+document.addEventListener('contextmenu', (e) => { e.preventDefault(); return false; });
+
+document.addEventListener('copy', (e) => {
+  const sel = window.getSelection();
+  if (sel && sel.toString().length > 0) e.preventDefault();
+});
+
+document.addEventListener('keydown', (e) => {
+  const isPrint = e.key === 'PrintScreen';
+  const isCtrlShiftS = (e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'S' || e.key === 's');
+  const isCtrlP = (e.ctrlKey || e.metaKey) && (e.key === 'P' || e.key === 'p');
+
+  if (isPrint || isCtrlShiftS) {
+    e.preventDefault();
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText('Скриншот запрещён').catch(() => {});
+    }
+    triggerScreenshotBlur();
+    return false;
+  }
+  if (isCtrlP) { e.preventDefault(); return false; }
+});
+
+window.addEventListener('blur', () => { triggerScreenshotBlur(); });
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) triggerScreenshotBlur();
+});
+window.addEventListener('pagehide', () => { triggerScreenshotBlur(); });
+window.addEventListener('pageshow', () => { document.body.classList.remove('screenshot-blur'); });
+document.addEventListener('mouseleave', () => { triggerScreenshotBlur(); });
+document.addEventListener('keyup', (e) => {
+  if (e.key === 'PrintScreen') triggerScreenshotBlur();
+});
+
+function updateWatermark() {
+  const el = document.getElementById('receiptWatermark');
+  if (!el) return;
+  const now = new Date();
+  const locale = currentLang === 'en' ? 'en-GB' : 'ru-RU';
+  const dateStr = now.toLocaleDateString(locale);
+  const timeStr = now.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  el.textContent = t('protectedWm') + ' • ' + dateStr + ' ' + timeStr;
+}
+
+/* ---------- Меню ---------- */
+const menuBtn = document.getElementById('menuBtn');
+const closeBtn = document.getElementById('closeBtn');
+const sideMenu = document.getElementById('sideMenu');
+const overlay = document.getElementById('overlay');
+const pageContent = document.getElementById('pageContent');
+
+function openMenu() {
+  sideMenu.classList.add('open');
+  overlay.classList.add('open');
+  pageContent.classList.add('blurred');
+  sideMenu.setAttribute('aria-hidden', 'false');
+  menuBtn.setAttribute('aria-expanded', 'true');
+}
+function closeMenu() {
+  sideMenu.classList.remove('open');
+  overlay.classList.remove('open');
+  pageContent.classList.remove('blurred');
+  sideMenu.setAttribute('aria-hidden', 'true');
+  menuBtn.setAttribute('aria-expanded', 'false');
+}
+
+menuBtn.addEventListener('click', openMenu);
+closeBtn.addEventListener('click', closeMenu);
+overlay.addEventListener('click', closeMenu);
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMenu(); });
+
+window.openAppModal = (id) => {
+  const m = document.getElementById(id);
+  if (m) m.classList.add('show');
+  closeMenu();
+};
+window.closeAppModal = (id) => {
+  const m = document.getElementById(id);
+  if (m) m.classList.remove('show');
+};
+
+document.querySelectorAll('.side-menu a[data-menu]').forEach(link => {
+  link.addEventListener('click', (e) => {
+    e.preventDefault();
+    const key = link.dataset.menu;
+    if (key === 'settings') openAppModal('modalSettings');
+    if (key === 'support')  openAppModal('modalSupport');
+    if (key === 'language') openAppModal('modalLanguage');
+  });
+});
+
+document.querySelectorAll('.app-modal').forEach(modal => {
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) modal.classList.remove('show');
+  });
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.app-modal.show').forEach(m => m.classList.remove('show'));
+  }
+});
+
+const settingThanks   = document.getElementById('settingThanks');
+const settingAutosave = document.getElementById('settingAutosave');
+
+const savedSettings = JSON.parse(localStorage.getItem('app_settings') || '{}');
+if (savedSettings.thanks === false) settingThanks.checked = false;
+if (savedSettings.autosave === false) settingAutosave.checked = false;
+
+function persistSettings() {
+  localStorage.setItem('app_settings', JSON.stringify({
+    thanks: settingThanks.checked,
+    autosave: settingAutosave.checked
+  }));
+  applySettings();
+}
+function applySettings() {
+  const thanks = document.getElementById('thanksEl');
+  if (thanks) thanks.style.display = settingThanks.checked ? '' : 'none';
+}
+settingThanks.addEventListener('change', persistSettings);
+settingAutosave.addEventListener('change', persistSettings);
+applySettings();
+
+document.querySelectorAll('input[name="lang"]').forEach(r => {
+  if (r.value === currentLang) r.checked = true;
+  r.addEventListener('change', () => {
+    applyLanguage(r.value);
+    closeAppModal('modalLanguage');
+  });
+});
+
+listenToGlobalCatalog();
+applyLanguage(currentLang);
+</script>
+</body>
+</html>
