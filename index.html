@@ -23,6 +23,10 @@
     --menu-hover: #f2f2f2;
     --menu-shadow: rgba(0, 0, 0, 0.18);
     --menu-overlay: rgba(0, 0, 0, 0.35);
+    
+    /* Анимации */
+    --anim-fast: 0.2s ease;
+    --anim-normal: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   body {
@@ -35,7 +39,7 @@
   .page-content {
     width: 100%;
     display: flex; flex-direction: column; align-items: center;
-    transition: filter 0.28s ease;
+    transition: filter var(--anim-normal);
   }
 
   body.screenshot-blur .page-content {
@@ -56,10 +60,11 @@
     display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 5px;
     background: transparent; border: 1px solid var(--menu-border); border-radius: 8px;
     cursor: pointer; padding: 0; color: var(--panel-text);
-    transition: background 0.15s; flex-shrink: 0;
+    transition: background var(--anim-fast), transform 0.1s; flex-shrink: 0;
   }
   .menu-btn:hover { background: var(--menu-hover); }
-  .menu-btn span { display: block; width: 22px; height: 2px; background: currentColor; border-radius: 2px; }
+  .menu-btn:active { transform: scale(0.95); }
+  .menu-btn span { display: block; width: 22px; height: 2px; background: currentColor; border-radius: 2px; transition: all var(--anim-fast); }
 
   .top-controls {
     width: 100%; max-width: 420px;
@@ -68,16 +73,22 @@
   .top-controls button {
     flex: 1; padding: 12px; border-radius: 8px; font-weight: 600; font-size: 14px;
     display: flex; align-items: center; justify-content: center; gap: 6px;
-    cursor: pointer; border: none; transition: transform 0.1s; font-family: var(--font-ui);
+    cursor: pointer; border: none; transition: transform 0.1s, opacity var(--anim-fast); font-family: var(--font-ui);
   }
   .top-controls button:active { transform: scale(0.97); }
   .btn-save { background: var(--accent); color: var(--accent-text); }
+  .btn-save:hover { opacity: 0.8; }
 
   .receipt-wrapper { width: 100%; max-width: 420px; }
   .receipt {
     background: #ffffff; color: #000000;
     padding: 24px; position: relative; box-shadow: 0 10px 30px rgba(0,0,0,0.15); margin-bottom: 24px;
     border-radius: 12px; font-family: var(--font-receipt);
+    animation: slideUp var(--anim-normal);
+  }
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
   }
   .receipt::after {
     content: ''; position: absolute; bottom: -8px; left: 0; right: 0; height: 8px; background-size: 16px 16px;
@@ -87,23 +98,34 @@
   .receipt-header h1 { font-size: 20px; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 6px; font-weight: 700; color: #000; }
   .receipt-header p { font-size: 12px; color: #666; }
 
-  .receipt-watermark {
-    position: absolute; bottom: 8px; right: 12px;
-    font-size: 12px; font-weight: 700; color: rgba(0,0,0,0.4);
+  .receipt-footer-text {
+    font-size: 11px;
+    color: #999;
+    text-align: center;
     font-family: var(--font-receipt);
-    pointer-events: none; user-select: none;
+    margin-top: 20px;
+    padding-top: 10px;
+    border-top: 1px solid #eee;
   }
 
   .toggle-catalog-btn {
     width: 100%; padding: 10px; margin-bottom: 8px; background: #ffffff; color: #000;
     border: 1px solid #e0e0e0; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;
+    transition: background var(--anim-fast);
   }
-  .catalog-wrapper { display: block; }
+  .toggle-catalog-btn:hover { background: #f9f9f9; }
+  .catalog-wrapper { display: block; animation: fadeIn var(--anim-fast); }
   .catalog-wrapper.hidden { display: none; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
 
   .search-box { display: flex; gap: 8px; margin-bottom: 8px; }
   .search-box input {
     flex: 1; padding: 12px 14px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 15px; background: #ffffff; color: #000; outline: none;
+    transition: border-color var(--anim-fast);
   }
   .search-box input:focus { border-color: #000; }
 
@@ -113,6 +135,7 @@
   .catalog-item {
     padding: 12px 14px; border-bottom: 1px solid #e0e0e0; display: flex; justify-content: space-between;
     cursor: pointer; font-size: 14px; color: #000; gap: 8px;
+    transition: background var(--anim-fast);
   }
   .catalog-item:last-child { border-bottom: none; }
   .catalog-item:hover { background: #f9f9f9; }
@@ -123,20 +146,18 @@
     font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
     padding: 2px 6px; border-radius: 4px; background: #000; color: #fff;
   }
-  .approx-badge {
-    font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px;
-    padding: 1px 4px; border-radius: 3px; background: #f0f0f0; color: #888; margin-left: 4px;
-  }
   .catalog-empty { padding: 20px; text-align: center; color: #666; font-size: 13px; }
 
   .manual-input {
     display: none; flex-direction: column; gap: 12px; background: #ffffff; border: 1px solid #e0e0e0; padding: 16px; border-radius: 10px; margin-bottom: 16px;
   }
-  .manual-input.show { display: flex; }
+  .manual-input.show { display: flex; animation: slideUp var(--anim-fast); }
   .manual-row { display: flex; gap: 8px; align-items: center; }
   .manual-row input[type="text"] {
     flex: 1; padding: 12px; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 14px; background: #ffffff; color: #000; outline: none;
+    transition: border-color var(--anim-fast);
   }
+  .manual-row input[type="text"]:focus { border-color: #000; }
 
   .price-wrap { display: flex; flex-direction: column; gap: 10px; width: 100%; }
   .price-top { display: flex; align-items: center; gap: 10px; color: #000; }
@@ -148,36 +169,41 @@
   input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 24px; height: 24px; background: #000; border-radius: 50%; cursor: pointer; }
 
   .qty-wrap { display: flex; align-items: center; gap: 10px; background: #ffffff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 4px; }
-  .qty-btn { width: 36px; height: 36px; background: #f8f9fa; border: none; border-radius: 6px; font-size: 20px; font-weight: 700; cursor: pointer; color: #000; }
+  .qty-btn { width: 36px; height: 36px; background: #f8f9fa; border: none; border-radius: 6px; font-size: 20px; font-weight: 700; cursor: pointer; color: #000; transition: background var(--anim-fast); }
+  .qty-btn:hover { background: #e0e0e0; }
   .qty-val { flex: 1; text-align: center; font-weight: 700; font-size: 16px; color: #000; }
 
   .manual-actions { display: flex; gap: 10px; margin-top: 8px; flex-direction: column;}
 
-  .btn-submit { padding: 12px; background: #4caf50; color: #fff; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; width: 100%; font-size: 14px; }
-  .btn-cancel { padding: 12px; background: #ffffff; color: #000; border: 1px solid #e0e0e0; border-radius: 8px; font-weight: 700; cursor: pointer; width: 100%; font-size: 14px; }
+  .btn-submit { padding: 12px; background: #4caf50; color: #fff; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; width: 100%; font-size: 14px; transition: background var(--anim-fast); }
+  .btn-submit:hover { background: #43a047; }
+  .btn-cancel { padding: 12px; background: #ffffff; color: #000; border: 1px solid #e0e0e0; border-radius: 8px; font-weight: 700; cursor: pointer; width: 100%; font-size: 14px; transition: background var(--anim-fast); }
+  .btn-cancel:hover { background: #f9f9f9; }
 
   .receipt ul { list-style: none; }
-  .receipt li { display: flex; align-items: flex-start; gap: 12px; padding: 12px 0; border-bottom: 1px dashed #e0e0e0; color: #000; }
+  .receipt li { display: flex; align-items: flex-start; gap: 12px; padding: 12px 0; border-bottom: 1px dashed #e0e0e0; color: #000; animation: fadeIn var(--anim-fast); }
   .receipt li.done { opacity: 0.4; }
   .receipt li.done .text { text-decoration: line-through; }
 
-  .checkbox { width: 20px; height: 20px; border: 2px solid #000; flex-shrink: 0; margin-top: 1px; cursor: pointer; border-radius: 4px; display: flex; align-items: center; justify-content: center; }
+  .checkbox { width: 20px; height: 20px; border: 2px solid #000; flex-shrink: 0; margin-top: 1px; cursor: pointer; border-radius: 4px; display: flex; align-items: center; justify-content: center; transition: background var(--anim-fast); }
   .receipt li.done .checkbox { background: #000; border-color: #000; }
   .receipt li.done .checkbox::after { content: "✓"; color: #fff; font-size: 14px; font-weight: 700; }
 
   .content { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
   .top-row { display: flex; justify-content: space-between; align-items: flex-start; }
   .text { font-weight: 700; cursor: pointer; word-break: break-word; font-size: 15px; flex: 1; }
+  .new-badge { font-size: 10px; color: #fff; background: #ff9800; padding: 2px 6px; border-radius: 4px; margin-left: 6px; vertical-align: middle; font-weight: 700; }
 
   .item-controls { display: flex; align-items: center; gap: 4px; background: #ffffff; border: 1px solid #e0e0e0; border-radius: 6px; padding: 2px; }
-  .item-btn { width: 26px; height: 26px; background: #ffffff; border: none; border-radius: 4px; font-size: 16px; font-weight: 700; cursor: pointer; color: #000; }
+  .item-btn { width: 26px; height: 26px; background: #ffffff; border: none; border-radius: 4px; font-size: 16px; font-weight: 700; cursor: pointer; color: #000; transition: background var(--anim-fast); }
   .item-btn:hover { background: #f0f0f0; }
   .item-qty { min-width: 20px; text-align: center; font-weight: 700; font-size: 13px; color: #000; }
 
   .calc-row { display: flex; justify-content: space-between; color: #666; font-size: 13px; }
   .calc-left { display: flex; gap: 4px; align-items: center; }
   .item-total { font-weight: 700; color: #000; font-size: 15px; }
-  .del { background: none; border: none; color: #000; font-size: 22px; cursor: pointer; padding: 0 4px; margin-left: 4px; }
+  .del { background: none; border: none; color: #000; font-size: 22px; cursor: pointer; padding: 0 4px; margin-left: 4px; transition: color var(--anim-fast); }
+  .del:hover { color: #f44336; }
 
   .item-price-btn {
     background: none; border: none; padding: 0; cursor: pointer;
@@ -195,14 +221,14 @@
   .hide-for-screenshot { display: none !important; }
 
   .modal { position: fixed; inset: 0; background: rgba(0,0,0,.9); display: none; align-items: center; justify-content: center; z-index: 100; }
-  .modal.show { display: flex; }
+  .modal.show { display: flex; animation: fadeIn var(--anim-fast); }
   .modal img { max-width: 100%; max-height: 90vh; border-radius: 8px; }
   .modal .close { position: absolute; top: 20px; right: 20px; background: rgba(255,255,255,.2); color: #fff; width: 44px; height: 44px; border-radius: 50%; font-size: 24px; cursor: pointer; }
 
   .overlay {
     position: fixed; inset: 0; background: var(--menu-overlay);
     opacity: 0; visibility: hidden;
-    transition: opacity 0.25s ease, visibility 0.25s ease;
+    transition: opacity var(--anim-normal), visibility var(--anim-normal);
     z-index: 90;
   }
   .overlay.open { opacity: 1; visibility: visible; }
@@ -214,16 +240,18 @@
     border-right: 1px solid var(--menu-border);
     box-shadow: 6px 0 20px var(--menu-shadow);
     transform: translateX(-100%);
-    transition: transform 0.28s ease;
+    transition: transform var(--anim-normal);
     z-index: 100;
     display: flex; flex-direction: column;
     padding: 16px 0;
+    overflow-y: auto;
   }
   .side-menu.open { transform: translateX(0); }
 
   .side-menu__header {
     display: flex; align-items: center; justify-content: space-between;
     padding: 0 16px 12px; border-bottom: 1px solid var(--menu-border);
+    margin-bottom: 8px;
   }
   .side-menu__title { font-size: 16px; font-weight: 600; }
 
@@ -232,7 +260,7 @@
     display: flex; align-items: center; justify-content: center;
     background: transparent; border: none; border-radius: 8px;
     cursor: pointer; font-size: 22px; line-height: 1; color: var(--panel-text);
-    transition: background 0.15s;
+    transition: background var(--anim-fast);
   }
   .close-btn:hover { background: var(--menu-hover); }
 
@@ -240,6 +268,8 @@
     display: block; padding: 12px 16px;
     color: var(--panel-text); text-decoration: none; font-size: 14px;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    transition: background var(--anim-fast);
+    cursor: pointer;
   }
   .side-menu a:hover { background: var(--menu-hover); }
   .side-menu .divider { height: 1px; background: var(--menu-border); margin: 8px 0; }
@@ -250,7 +280,7 @@
     display: none; align-items: center; justify-content: center;
     z-index: 200; padding: 16px;
   }
-  .app-modal.show { display: flex; }
+  .app-modal.show { display: flex; animation: fadeIn var(--anim-fast); }
 
   .app-modal__box {
     width: 100%; max-width: 400px;
@@ -258,6 +288,7 @@
     border-radius: 14px;
     box-shadow: 0 20px 50px rgba(0,0,0,.3);
     overflow: hidden;
+    animation: slideUp var(--anim-fast);
   }
   .app-modal__head {
     display: flex; align-items: center; justify-content: space-between;
@@ -293,33 +324,28 @@
   .app-lang:last-of-type { border-bottom: none; }
   .app-lang input { width: 18px; height: 18px; accent-color: #000; cursor: pointer; }
 
-  .seed-btn {
-    margin-top: 14px; width: 100%; padding: 12px;
-    background: #000; color: #fff; border: none; border-radius: 8px;
-    font-weight: 700; cursor: pointer; font-size: 14px;
-  }
-  .seed-hint { font-size: 12px; color: #888; margin-top: 8px; }
-
   .price-edit-modal {
     position: fixed; inset: 0; background: var(--menu-overlay);
     display: none; align-items: center; justify-content: center;
     z-index: 300; padding: 16px;
   }
-  .price-edit-modal.show { display: flex; }
+  .price-edit-modal.show { display: flex; animation: fadeIn var(--anim-fast); }
   .price-edit-box {
     width: 100%; max-width: 340px; background: var(--panel-bg);
     border-radius: 14px; padding: 18px; box-shadow: 0 20px 50px rgba(0,0,0,.3);
+    animation: slideUp var(--anim-fast);
   }
   .price-edit-title { font-size: 15px; font-weight: 700; margin-bottom: 12px; }
   .price-edit-input {
     width: 100%; padding: 12px; font-size: 18px; font-weight: 700; text-align: right;
     border: 2px solid #e0e0e0; border-radius: 8px; outline: none; margin-bottom: 12px;
     color: #000; background: #fff;
+    transition: border-color var(--anim-fast);
   }
   .price-edit-input:focus { border-color: #000; }
   .price-edit-actions { display: flex; flex-direction: column; gap: 8px; }
-  .price-edit-save { padding: 12px; background: #4caf50; color: #fff; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; }
-  .price-edit-db { padding: 12px; background: #000; color: #fff; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; }
+  .price-edit-save { padding: 12px; background: #4caf50; color: #fff; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; transition: background var(--anim-fast); }
+  .price-edit-save:hover { background: #43a047; }
   .price-edit-cancel { padding: 12px; background: #fff; color: #000; border: 1px solid #e0e0e0; border-radius: 8px; font-weight: 700; cursor: pointer; }
 
   .weight-modal {
@@ -327,10 +353,11 @@
     display: none; align-items: center; justify-content: center;
     z-index: 300; padding: 16px;
   }
-  .weight-modal.show { display: flex; }
+  .weight-modal.show { display: flex; animation: fadeIn var(--anim-fast); }
   .weight-box {
     width: 100%; max-width: 340px; background: var(--panel-bg);
     border-radius: 14px; padding: 18px; box-shadow: 0 20px 50px rgba(0,0,0,.3);
+    animation: slideUp var(--anim-fast);
   }
   .weight-title { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
   .weight-subtitle { font-size: 12px; color: #888; margin-bottom: 12px; }
@@ -342,11 +369,9 @@
   .unit-toggle button {
     flex: 1; padding: 8px; border: none; background: transparent;
     font-weight: 700; font-size: 13px; cursor: pointer; color: #666;
-    border-radius: 6px;
+    border-radius: 6px; transition: all var(--anim-fast);
   }
-  .unit-toggle button.active {
-    background: #000; color: #fff;
-  }
+  .unit-toggle button.active { background: #000; color: #fff; }
 
   .unit-toggle--small {
     display: flex; gap: 0; margin: 0;
@@ -355,16 +380,15 @@
   .unit-toggle--small button {
     padding: 6px 12px; border: none; background: transparent;
     font-weight: 700; font-size: 13px; cursor: pointer; color: #666;
-    border-radius: 6px; min-width: 40px;
+    border-radius: 6px; min-width: 40px; transition: all var(--anim-fast);
   }
-  .unit-toggle--small button.active {
-    background: #000; color: #fff;
-  }
+  .unit-toggle--small button.active { background: #000; color: #fff; }
 
   .weight-input-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
   .weight-input {
     flex: 1; padding: 12px; font-size: 18px; font-weight: 700; text-align: right;
     border: 2px solid #e0e0e0; border-radius: 8px; outline: none; color: #000; background: #fff;
+    transition: border-color var(--anim-fast);
   }
   .weight-input:focus { border-color: #000; }
   .weight-unit { font-size: 14px; font-weight: 700; color: #000; }
@@ -372,6 +396,7 @@
   .weight-chip {
     flex: 1; padding: 8px 4px; font-size: 13px; font-weight: 600; cursor: pointer;
     background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 6px; color: #000;
+    transition: background var(--anim-fast);
   }
   .weight-chip:hover { background: #efefef; }
   .weight-result {
@@ -390,8 +415,8 @@
     margin-bottom: 12px;
   }
   .weight-actions { display: flex; flex-direction: column; gap: 8px; }
-  .weight-save { padding: 12px; background: #4caf50; color: #fff; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; }
-  .weight-save-db { padding: 12px; background: #000; color: #fff; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; }
+  .weight-save { padding: 12px; background: #4caf50; color: #fff; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; transition: background var(--anim-fast); }
+  .weight-save:hover { background: #43a047; }
   .weight-cancel { padding: 12px; background: #fff; color: #000; border: 1px solid #e0e0e0; border-radius: 8px; font-weight: 700; cursor: pointer; }
 </style>
 </head>
@@ -482,7 +507,7 @@
       </div>
 
       <div class="thanks" id="thanksEl">Спасибо за покупку!</div>
-      <div class="receipt-watermark" id="receiptWatermark"></div>
+      <div class="receipt-footer-text" id="receiptDisclaimer">* Цены являются примерными и могут отличаться от реальных в магазине</div>
     </div>
   </div>
 
@@ -498,6 +523,8 @@
 
   <a href="#" data-menu="settings" id="menuSettings">Настройки</a>
   <a href="#" data-menu="support" id="menuSupport">Поддержка</a>
+  <a href="#" data-menu="clear" id="menuClear">🗑 Очистить чек</a>
+  <a href="#" data-menu="export" id="menuExport">📤 Скопировать текст чека</a>
   <div class="divider"></div>
   <a href="#" data-menu="language" id="menuLanguage">Язык приложения</a>
 </nav>
@@ -518,9 +545,6 @@
         <input type="checkbox" id="settingAutosave" checked>
       </label>
       <p id="settingsHint" style="font-size:12px;color:#888;margin-top:12px;">Настройки сохраняются на этом устройстве.</p>
-
-      <button class="seed-btn" id="btnSeedCatalog" onclick="seedCatalog()">⬆️ Загрузить базовый каталог в Firebase</button>
-      <p class="seed-hint" id="seedHint">Одноразово добавит продукты в общую базу.</p>
     </div>
   </div>
 </div>
@@ -565,8 +589,7 @@
     <div class="price-edit-title" id="priceEditTitle">Изменить цену</div>
     <input type="number" class="price-edit-input" id="priceEditInput" min="0" step="0.01" value="0">
     <div class="price-edit-actions">
-      <button class="price-edit-save" id="priceEditSave">Сохранить в чек</button>
-      <button class="price-edit-db" id="priceEditSaveDb">Сохранить в чек + обновить базу</button>
+      <button class="price-edit-save" id="priceEditSave">Сохранить в чек + базу</button>
       <button class="price-edit-cancel" id="priceEditCancel">Отмена</button>
     </div>
   </div>
@@ -606,8 +629,7 @@
     <div class="weight-result" id="weightResult">0 ₽</div>
     <div class="weight-add-info" id="weightAddInfo">Добавляется: 0 г (0 кг)</div>
     <div class="weight-actions">
-      <button class="weight-save" id="weightSave">Добавить в чек</button>
-      <button class="weight-save-db" id="weightSaveDb">Добавить + обновить базу</button>
+      <button class="weight-save" id="weightSave">Добавить в чек + базу</button>
       <button class="weight-cancel" id="weightCancel">Отмена</button>
     </div>
   </div>
@@ -620,7 +642,7 @@
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getDatabase, ref, onValue, push, set } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+import { getDatabase, ref, onValue, push, set, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyA6QQEiTHsuoAyRXmjg2e4mhD6WKsMRu58",
@@ -635,94 +657,10 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-/* ---------- Локальный справочник (только штучные) ---------- */
-const LOCAL_DB = [
-  { name: 'хлеб белый', brand: 'Каравай', flavor: '', price: 45, unit: 'pcs' },
-  { name: 'хлеб чёрный', brand: 'Бородинский', flavor: '', price: 50, unit: 'pcs' },
-  { name: 'батон', brand: 'Нарезной', flavor: '', price: 40, unit: 'pcs' },
-  { name: 'молоко', brand: 'Простоквашино', flavor: '2.5%', price: 85, unit: 'pcs' },
-  { name: 'молоко', brand: 'Домик в деревне', flavor: '3.2%', price: 90, unit: 'pcs' },
-  { name: 'кефир', brand: 'Домик в деревне', flavor: '1%', price: 80, unit: 'pcs' },
-  { name: 'сметана', brand: 'Простоквашино', flavor: '20%', price: 90, unit: 'pcs' },
-  { name: 'творог', brand: 'Савушкин', flavor: '5%', price: 120, unit: 'pcs' },
-  { name: 'сыр', brand: 'Российский', flavor: '', price: 320, unit: 'pcs' },
-  { name: 'сыр', brand: 'Брест-Литовск', flavor: 'Тильзитер', price: 169, unit: 'pcs' },
-  { name: 'сыр', brand: 'Hochland', flavor: 'Чизбургер', price: 108, unit: 'pcs' },
-  { name: 'масло сливочное', brand: 'Простоквашино', flavor: '82.5%', price: 180, unit: 'pcs' },
-  { name: 'йогурт', brand: 'Actimel', flavor: 'клубника', price: 65, unit: 'pcs' },
-  { name: 'йогурт', brand: 'Чудо', flavor: 'персик-маракуйя', price: 65, unit: 'pcs' },
-  { name: 'сырок', brand: 'Простоквашино', flavor: 'ваниль', price: 50, unit: 'pcs' },
-  { name: 'сырок', brand: 'Простоквашино', flavor: 'шоколад', price: 55, unit: 'pcs' },
-  { name: 'сырок', brand: 'Савушкин', flavor: 'ваниль', price: 36, unit: 'pcs' },
-  { name: 'сырок', brand: 'Чудо', flavor: 'кокос', price: 37, unit: 'pcs' },
-  { name: 'курица', brand: 'Петелинка', flavor: 'тушка', price: 250, unit: 'pcs' },
-  { name: 'куриная грудка', brand: 'Петелинка', flavor: '', price: 320, unit: 'pcs' },
-  { name: 'фарш', brand: 'Микоян', flavor: 'свинина-говядина', price: 300, unit: 'pcs' },
-  { name: 'колбаса', brand: 'Вязанка', flavor: 'Докторская', price: 160, unit: 'pcs' },
-  { name: 'сосиски', brand: 'Вязанка', flavor: 'Молокуши', price: 140, unit: 'pcs' },
-  { name: 'пельмени', brand: 'Сам Самыч', flavor: '', price: 350, unit: 'pcs' },
-  { name: 'рыба', brand: '', flavor: 'минтай', price: 300, unit: 'pcs' },
-  { name: 'лосось', brand: '', flavor: '', price: 900, unit: 'pcs' },
-  { name: 'креветки', brand: 'Морская планета', flavor: '', price: 600, unit: 'pcs' },
-  { name: 'рис', brand: 'Мистраль', flavor: 'длиннозерный', price: 90, unit: 'pcs' },
-  { name: 'гречка', brand: 'Увелка', flavor: '', price: 85, unit: 'pcs' },
-  { name: 'макароны', brand: 'Макфа', flavor: 'рожки', price: 75, unit: 'pcs' },
-  { name: 'овсянка', brand: 'Геркулес', flavor: '', price: 70, unit: 'pcs' },
-  { name: 'мука', brand: 'Макфа', flavor: 'пшеничная', price: 60, unit: 'pcs' },
-  { name: 'сахар', brand: 'Русский сахар', flavor: '', price: 65, unit: 'pcs' },
-  { name: 'соль', brand: 'Тыретская', flavor: '', price: 25, unit: 'pcs' },
-  { name: 'вода', brand: 'Святой источник', flavor: 'негазированная', price: 40, unit: 'pcs' },
-  { name: 'вода минеральная', brand: 'Боржоми', flavor: '', price: 55, unit: 'pcs' },
-  { name: 'сок', brand: 'Добрый', flavor: 'апельсин', price: 110, unit: 'pcs' },
-  { name: 'чай', brand: 'Lipton', flavor: 'чёрный', price: 150, unit: 'pcs' },
-  { name: 'кофе', brand: 'Nescafe', flavor: 'классик', price: 450, unit: 'pcs' },
-  { name: 'кофе', brand: 'Nescafe', flavor: 'Голд', price: 500, unit: 'pcs' },
-  { name: 'энергетик', brand: 'Adrenaline Rush', flavor: '', price: 120, unit: 'pcs' },
-  { name: 'кола', brand: 'Coca-Cola', flavor: '', price: 90, unit: 'pcs' },
-  { name: 'пиво', brand: 'Балтика', flavor: '7', price: 150, unit: 'pcs' },
-  { name: 'чипсы', brand: 'Lays', flavor: 'сметана и лук', price: 120, unit: 'pcs' },
-  { name: 'чипсы', brand: 'Dr.Korner', flavor: 'сметана и лук', price: 74, unit: 'pcs' },
-  { name: 'шоколад', brand: 'Milka', flavor: 'молочный', price: 150, unit: 'pcs' },
-  { name: 'печенье', brand: 'Юбилейное', flavor: '', price: 80, unit: 'pcs' },
-  { name: 'конфеты', brand: 'Красная шапочка', flavor: '', price: 150, unit: 'pcs' },
-  { name: 'мороженое', brand: 'Gold', flavor: 'пломбир', price: 120, unit: 'pcs' },
-  { name: 'торт', brand: 'Медовик', flavor: '', price: 500, unit: 'pcs' },
-  { name: 'яйца', brand: 'Окское', flavor: 'С1', price: 120, unit: 'pcs' },
-  { name: 'майонез', brand: 'Провансаль', flavor: '', price: 80, unit: 'pcs' },
-  { name: 'кетчуп', brand: 'Heinz', flavor: 'томатный', price: 90, unit: 'pcs' },
-  { name: 'мёд', brand: 'Алтай', flavor: 'липовый', price: 400, unit: 'pcs' },
-  { name: 'орехи', brand: '', flavor: 'грецкие', price: 350, unit: 'pcs' },
-  { name: 'хлопья', brand: 'Nestle', flavor: 'кукурузные', price: 180, unit: 'pcs' }
-];
-
-/* ---------- Весовые (только овощи, фрукты, ягоды) ---------- */
-const WEIGHT_DB = [
-  { name: 'картофель', brand: '', flavor: '', price: 45, unit: 'kg' },
-  { name: 'морковь', brand: '', flavor: '', price: 40, unit: 'kg' },
-  { name: 'лук', brand: '', flavor: '', price: 35, unit: 'kg' },
-  { name: 'помидор', brand: '', flavor: 'розовый', price: 180, unit: 'kg' },
-  { name: 'огурец', brand: '', flavor: '', price: 120, unit: 'kg' },
-  { name: 'перец', brand: '', flavor: 'болгарский', price: 250, unit: 'kg' },
-  { name: 'капуста', brand: '', flavor: 'белокочанная', price: 50, unit: 'kg' },
-  { name: 'свёкла', brand: '', flavor: '', price: 45, unit: 'kg' },
-  { name: 'чеснок', brand: '', flavor: '', price: 300, unit: 'kg' },
-  { name: 'яблоко', brand: '', flavor: 'Голден', price: 130, unit: 'kg' },
-  { name: 'банан', brand: '', flavor: '', price: 110, unit: 'kg' },
-  { name: 'апельсин', brand: '', flavor: '', price: 160, unit: 'kg' },
-  { name: 'лимон', brand: '', flavor: '', price: 200, unit: 'kg' },
-  { name: 'виноград', brand: '', flavor: 'кишмиш', price: 280, unit: 'kg' },
-  { name: 'груша', brand: '', flavor: 'Конференция', price: 190, unit: 'kg' },
-  { name: 'клубника', brand: '', flavor: '', price: 450, unit: 'kg' },
-  { name: 'вишня', brand: '', flavor: '', price: 900, unit: 'kg' },
-  { name: 'черешня', brand: '', flavor: '', price: 1000, unit: 'kg' },
-  { name: 'арбуз', brand: '', flavor: '', price: 40, unit: 'kg' },
-  { name: 'дыня', brand: '', flavor: 'торпеда', price: 120, unit: 'kg' },
-  { name: 'манго', brand: '', flavor: '', price: 350, unit: 'kg' },
-  { name: 'киви', brand: '', flavor: '', price: 220, unit: 'kg' },
-  { name: 'гранат', brand: '', flavor: '', price: 260, unit: 'kg' },
-  { name: 'хурма', brand: '', flavor: '', price: 230, unit: 'kg' },
-  { name: 'малина', brand: '', flavor: '', price: 600, unit: 'kg' }
-];
+// ⚠️ ВАЖНО: ЭТА СТРОКА ОЧИСТИТ ВАШУ БАЗУ ОТ СТАРЫХ ПРОДУКТОВ.
+// Она выполнится ОДИН РАЗ при загрузке страницы. 
+// После того как проверите, что список пуст, УДАЛИТЕ эту строку и сохраните код снова!
+remove(ref(db, 'catalog'));
 
 let globalCatalog = [];
 let currentCurrency = { code: 'RUB', symbol: '₽' };
@@ -747,54 +685,54 @@ function listenToGlobalCatalog() {
   onValue(catalogRef, (snapshot) => {
     const data = snapshot.val() || {};
     globalCatalog = Object.entries(data).map(([key, val]) => ({
-      id: key, name: val.name, brand: val.brand || '', flavor: val.flavor || '',
+      id: key, name: val.name, name_en: val.name_en || '', brand: val.brand || '', flavor: val.flavor || '',
       price: val.avgPrice, count: val.count, unit: val.unit || 'pcs'
     }));
     renderCatalog(document.getElementById('searchInput').value);
   });
 }
 
-function pushToGlobalCatalog(name, brand, flavor, price, unit = 'kg') {
+// Функция перевода через бесплатный API
+async function translateText(text, targetLang) {
+  if (!text) return text;
+  try {
+    const res = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${targetLang}&dt=t&q=${encodeURIComponent(text)}`);
+    const data = await res.json();
+    return data[0][0][0];
+  } catch (e) {
+    console.warn('Translate error', e);
+    return text; // Если ошибка, возвращаем оригинал
+  }
+}
+
+async function pushToGlobalCatalog(name, brand, flavor, price, unit = 'kg') {
   const cleanName = name.trim().toLowerCase();
   if (!cleanName || price <= 0) return;
+
+  // Определяем, на каком языке введен товар (если есть русские буквы, переводим на англ)
+  const isRussian = /[а-яА-Я]/.test(cleanName);
+  const name_en = isRussian ? await translateText(cleanName, 'en') : cleanName;
+
   const key = cleanName + '|' + (brand || '').toLowerCase() + '|' + (flavor || '').toLowerCase();
   const existing = globalCatalog.find(item =>
     (item.name.toLowerCase() + '|' + (item.brand || '').toLowerCase() + '|' + (item.flavor || '').toLowerCase()) === key
   );
+  
   if (existing) {
     const newCount = existing.count + 1;
     const newAvg = ((existing.price * existing.count) + price) / newCount;
     set(ref(db, 'catalog/' + existing.id), {
-      name: existing.name, brand: existing.brand || '', flavor: existing.flavor || '',
+      name: existing.name, name_en: existing.name_en || name_en, brand: existing.brand || '', flavor: existing.flavor || '',
       avgPrice: Math.round(newAvg * 100) / 100, count: newCount, unit: existing.unit || unit
     });
   } else {
     const newRef = push(ref(db, 'catalog'));
     set(newRef, {
-      name: cleanName, brand: (brand || '').toLowerCase(), flavor: (flavor || '').toLowerCase(),
+      name: cleanName, name_en: name_en, brand: (brand || '').toLowerCase(), flavor: (flavor || '').toLowerCase(),
       avgPrice: price, count: 1, unit
     });
   }
 }
-
-window.seedCatalog = async () => {
-  if (!confirm('Добавить базовый каталог в общую базу Firebase? Уже существующие продукты не изменятся.')) return;
-  const existingKeys = new Set(globalCatalog.map(i =>
-    i.name.toLowerCase() + '|' + (i.brand || '').toLowerCase() + '|' + (i.flavor || '').toLowerCase()
-  ));
-  let added = 0, skipped = 0;
-  for (const item of [...LOCAL_DB, ...WEIGHT_DB]) {
-    const key = item.name.toLowerCase() + '|' + (item.brand || '').toLowerCase() + '|' + (item.flavor || '').toLowerCase();
-    if (existingKeys.has(key)) { skipped++; continue; }
-    const newRef = push(ref(db, 'catalog'));
-    await set(newRef, {
-      name: item.name.toLowerCase(), brand: (item.brand || '').toLowerCase(), flavor: (item.flavor || '').toLowerCase(),
-      avgPrice: item.price, count: 1, unit: item.unit
-    });
-    added++;
-  }
-  alert(`Готово!\nДобавлено: ${added}\nПропущено (уже есть): ${skipped}`);
-};
 
 function updateDate() {
   const now = new Date();
@@ -817,20 +755,21 @@ const T = {
     nameAlert: 'Введите название продукта', notFound: 'Ничего не найдено.',
     addManually: 'Добавить вручную',
     qtyShort: 'шт.', menuTitle: 'Меню', menuSettings: 'Настройки', menuSupport: 'Поддержка', menuLanguage: 'Язык приложения',
+    menuClear: 'Очистить чек', menuExport: 'Скопировать текст чека',
     settingsTitle: 'Настройки', settingThanks: 'Показывать «Спасибо за покупку!»', settingAutosave: 'Автосохранение чека',
-    settingsHint: 'Настройки сохраняются на этом устройстве.', seedBtn: '⬆️ Загрузить базовый каталог в Firebase',
-    seedHint: 'Одноразово добавит продукты в общую базу.', supportTitle: 'Поддержка',
+    settingsHint: 'Настройки сохраняются на этом устройстве.',
+    supportTitle: 'Поддержка',
     supportText: 'Возникли вопросы или нашли баг? Напишите нам:', languageTitle: 'Язык приложения',
     langRu: 'Русский', langEn: 'English', languageHint: 'Выбор языка применяется ко всему интерфейсу.',
-    priceEditTitle: 'Изменить цену: ', priceEditSave: 'Сохранить в чек',
-    priceEditSaveDb: 'Сохранить в чек + обновить базу', priceEditCancel: 'Отмена',
-    weightTitle: 'Укажите вес', weightSave: 'Добавить в чек',
-    weightSaveDb: 'Добавить + обновить базу', weightCancel: 'Отмена',
+    priceEditTitle: 'Изменить цену: ', priceEditSave: 'Сохранить в чек + базу', priceEditCancel: 'Отмена',
+    weightTitle: 'Укажите вес', weightSave: 'Добавить в чек + базу',
+    weightCancel: 'Отмена',
     weightUnitG: 'г', weightUnitKg: 'кг', weightPriceLabel: 'Цена:', weightGramsLabel: 'Вес:',
     per100g: '₽ / 100 г', per1kg: '₽ / 1 кг', unit100g: 'за 100 г', unit1kg: 'за 1 кг',
     gramShort: 'г', error: 'Ошибка: ', fixedPrice: 'Цена из базы',
-    byWeight: 'на вес', adding: 'Добавляется:', approxPrice: '≈ примерная',
-    protectedWm: 'Защищено'
+    byWeight: 'на вес', adding: 'Добавляется:',
+    newItem: 'новый',
+    disclaimer: '* Цены являются примерными и могут отличаться от реальных в магазине'
   },
   en: {
     saveBtn: '📸 Save receipt', receiptTitle: 'CASH RECEIPT',
@@ -845,20 +784,21 @@ const T = {
     nameAlert: 'Please enter a product name', notFound: 'Nothing found.',
     addManually: 'Add manually',
     qtyShort: 'pcs.', menuTitle: 'Menu', menuSettings: 'Settings', menuSupport: 'Support', menuLanguage: 'App language',
+    menuClear: 'Clear receipt', menuExport: 'Copy receipt text',
     settingsTitle: 'Settings', settingThanks: 'Show "Thank you for your purchase!"', settingAutosave: 'Receipt autosave',
-    settingsHint: 'Settings are saved on this device.', seedBtn: '⬆️ Upload base catalog to Firebase',
-    seedHint: 'One-time add of products to the shared database.', supportTitle: 'Support',
+    settingsHint: 'Settings are saved on this device.',
+    supportTitle: 'Support',
     supportText: 'Have questions or found a bug? Write to us:', languageTitle: 'App language',
     langRu: 'Русский', langEn: 'English', languageHint: 'The selected language applies to the entire interface.',
-    priceEditTitle: 'Edit price: ', priceEditSave: 'Save to receipt',
-    priceEditSaveDb: 'Save to receipt + update database', priceEditCancel: 'Cancel',
-    weightTitle: 'Enter weight', weightSave: 'Add to receipt',
-    weightSaveDb: 'Add + update database', weightCancel: 'Cancel',
+    priceEditTitle: 'Edit price: ', priceEditSave: 'Save to receipt + db', priceEditCancel: 'Cancel',
+    weightTitle: 'Enter weight', weightSave: 'Add to receipt + db',
+    weightCancel: 'Cancel',
     weightUnitG: 'g', weightUnitKg: 'kg', weightPriceLabel: 'Price:', weightGramsLabel: 'Weight:',
     per100g: '₽ / 100 g', per1kg: '₽ / 1 kg', unit100g: 'per 100 g', unit1kg: 'per 1 kg',
     gramShort: 'g', error: 'Error: ', fixedPrice: 'Price from database',
-    byWeight: 'by weight', adding: 'Adding:', approxPrice: '≈ approx',
-    protectedWm: 'Protected'
+    byWeight: 'by weight', adding: 'Adding:',
+    newItem: 'new',
+    disclaimer: '* Prices are approximate and may differ from actual store prices'
   }
 };
 function t(key) { return (T[currentLang] && T[currentLang][key]) || T.ru[key] || key; }
@@ -892,18 +832,19 @@ function applyLanguage(lang) {
   document.getElementById('sumAllLabel').textContent = t('sumAllLabel');
   document.getElementById('sumLeftLabel').textContent = t('sumLeftLabel');
   document.getElementById('thanksEl').textContent = t('thanks');
+  document.getElementById('receiptDisclaimer').textContent = t('disclaimer');
 
   document.getElementById('menuTitle').textContent = t('menuTitle');
   document.getElementById('menuSettings').textContent = t('menuSettings');
   document.getElementById('menuSupport').textContent = t('menuSupport');
+  document.getElementById('menuClear').textContent = '🗑 ' + t('menuClear');
+  document.getElementById('menuExport').textContent = '📤 ' + t('menuExport');
   document.getElementById('menuLanguage').textContent = t('menuLanguage');
 
   document.getElementById('settingsTitle').textContent = t('settingsTitle');
   document.getElementById('settingThanksLabel').textContent = t('settingThanks');
   document.getElementById('settingAutosaveLabel').textContent = t('settingAutosave');
   document.getElementById('settingsHint').textContent = t('settingsHint');
-  document.getElementById('btnSeedCatalog').textContent = t('seedBtn');
-  document.getElementById('seedHint').textContent = t('seedHint');
 
   document.getElementById('supportTitle').textContent = t('supportTitle');
   document.getElementById('supportText').textContent = t('supportText');
@@ -914,12 +855,10 @@ function applyLanguage(lang) {
   document.getElementById('languageHint').textContent = t('languageHint');
 
   document.getElementById('priceEditSave').textContent = t('priceEditSave');
-  document.getElementById('priceEditSaveDb').textContent = t('priceEditSaveDb');
   document.getElementById('priceEditCancel').textContent = t('priceEditCancel');
 
   document.getElementById('weightTitle').textContent = t('weightTitle');
   document.getElementById('weightSave').textContent = t('weightSave');
-  document.getElementById('weightSaveDb').textContent = t('weightSaveDb');
   document.getElementById('weightCancel').textContent = t('weightCancel');
   document.getElementById('weightPriceLabel').textContent = t('weightPriceLabel');
   document.getElementById('weightGramsLabel').textContent = t('weightGramsLabel');
@@ -932,7 +871,6 @@ function applyLanguage(lang) {
   updateDate();
   renderCatalog(document.getElementById('searchInput').value);
   render();
-  updateWatermark();
 }
 
 window.toggleCatalog = () => {
@@ -954,31 +892,15 @@ window.renderCatalog = function(filter = '') {
   catalogEl.innerHTML = '';
   const q = filter.trim().toLowerCase();
 
-  const firebaseKeys = new Set(globalCatalog.map(i =>
-    i.name.toLowerCase() + '|' + (i.brand || '').toLowerCase() + '|' + (i.flavor || '').toLowerCase()
-  ));
-
-  const localItems = [...LOCAL_DB, ...WEIGHT_DB]
-    .map(item => ({
-      id: 'local_' + item.name + '_' + (item.brand||'') + '_' + (item.flavor||''),
-      name: item.name, brand: item.brand || '', flavor: item.flavor || '',
-      price: item.price, count: 1, unit: item.unit,
-      isLocalOnly: true
-    }))
-    .filter(item => {
-      const key = item.name.toLowerCase() + '|' + (item.brand || '').toLowerCase() + '|' + (item.flavor || '').toLowerCase();
-      return !firebaseKeys.has(key);
-    });
-
-  const allItems = [...globalCatalog, ...localItems];
+  let allItems = [...globalCatalog];
 
   const filtered = allItems
-    .filter(item => (item.name + ' ' + (item.brand||'') + ' ' + (item.flavor||'')).toLowerCase().includes(q))
-    .sort((a, b) => {
-      if (a.isLocalOnly && !b.isLocalOnly) return 1;
-      if (!a.isLocalOnly && b.isLocalOnly) return -1;
-      return b.count - a.count;
-    });
+    .filter(item => {
+      // Ищем по русскому названию, английскому названию, бренду и вкусу
+      const searchStr = (item.name + ' ' + (item.name_en || '') + ' ' + (item.brand || '') + ' ' + (item.flavor || '')).toLowerCase();
+      return searchStr.includes(q);
+    })
+    .sort((a, b) => b.count - a.count);
 
   if (filtered.length === 0) {
     catalogEl.innerHTML = `<div class="catalog-empty">${t('notFound')}<br><a href="#" onclick="window.openManualWithName('${q.replace(/'/g, "\\'")}'); return false;" style="color:#000; text-decoration:underline;">${t('addManually')}</a></div>`;
@@ -999,15 +921,20 @@ window.renderCatalog = function(filter = '') {
     const priceText = isWeight
       ? `${formatPrice(item.price / 10)} / 100 ${t('gramShort')}`
       : formatPrice(item.price);
-    const approxMark = item.isLocalOnly ? ` <span class="approx-badge">${t('approxPrice')}</span>` : '';
+      
+    const countText = `<span style="font-size:10px;color:#aaa;margin-left:6px;">(${item.count})</span>`;
+
+    // Показываем английское название в скобках, если выбран английский язык
+    const displayName = currentLang === 'en' && item.name_en ? item.name_en : item.name;
+    const originalName = currentLang === 'en' && item.name_en && item.name !== item.name_en ? ` <span style="font-size:10px;color:#aaa;">(${item.name})</span>` : '';
 
     div.innerHTML = `
-      <span class="catalog-name">${item.name}${badge}${detailsHtml}</span>
-      <span class="price">${priceText}${approxMark}</span>
+      <span class="catalog-name">${displayName}${originalName}${badge}${detailsHtml}${countText}</span>
+      <span class="price">${priceText}</span>
     `;
     div.onclick = () => {
-      if (isWeight) openWeightModal(item.name, item.brand, item.flavor, item.price);
-      else addFromCatalog(item);
+      if (isWeight) openWeightModal(displayName, item.brand, item.flavor, item.price);
+      else addFromCatalog(displayName, item.brand, item.flavor, item.price, item.unit);
     };
     catalogEl.appendChild(div);
   });
@@ -1015,11 +942,11 @@ window.renderCatalog = function(filter = '') {
 
 searchInput.addEventListener('input', (e) => renderCatalog(e.target.value));
 
-function addFromCatalog(item) {
+function addFromCatalog(name, brand, flavor, price, unit) {
   items.push({
     id: 'i_' + Date.now() + '_' + Math.random().toString(36).slice(2,6),
-    text: item.name, brand: item.brand || '', flavor: item.flavor || '',
-    price: item.price, qty: 1, unit: item.unit || 'pcs',
+    text: name, brand: brand || '', flavor: flavor || '',
+    price: price, qty: 1, unit: unit || 'pcs', isNew: false,
     done: false, photo: null, createdAt: Date.now()
   });
   save(); render(); searchInput.value = ''; renderCatalog(''); searchInput.blur();
@@ -1180,22 +1107,23 @@ function confirmWeight(saveToDb) {
     pricePerKg: weightPricePerKg,
     inputUnit: weightInputUnit,
     priceUnitMode: weightPriceUnitMode,
+    isNew: false,
     done: false, photo: null, createdAt: Date.now()
   });
   save(); render();
 
-  if (saveToDb && weightPricePerKg > 0) pushToGlobalCatalog(weightProductName, weightBrand, weightFlavor, weightPricePerKg, 'kg');
+  // Всегда сохраняем в базу
+  if (weightPricePerKg > 0) pushToGlobalCatalog(weightProductName, weightBrand, weightFlavor, weightPricePerKg, 'kg');
 
   closeWeightModal();
   searchInput.value = ''; renderCatalog(''); searchInput.blur();
 }
 
-document.getElementById('weightSave').onclick = () => confirmWeight(false);
-document.getElementById('weightSaveDb').onclick = () => confirmWeight(true);
+document.getElementById('weightSave').onclick = () => confirmWeight(true);
 document.getElementById('weightCancel').onclick = closeWeightModal;
 weightModal.addEventListener('click', (e) => { if (e.target === weightModal) closeWeightModal(); });
-weightInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') confirmWeight(false); });
-weightPriceInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') confirmWeight(false); });
+weightInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') confirmWeight(true); });
+weightPriceInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') confirmWeight(true); });
 
 /* ---------- Ручной ввод ---------- */
 const manualInput = document.getElementById('manualInput');
@@ -1280,7 +1208,7 @@ window.addManualItem = () => {
   if (manualUnitMode === 'pcs') {
     items.push({
       id: 'i_' + Date.now() + '_' + Math.random().toString(36).slice(2,6),
-      text: name, brand, flavor, price, qty: currentQty, unit: 'pcs',
+      text: name, brand, flavor, price, qty: currentQty, unit: 'pcs', isNew: true,
       done: false, photo: null, createdAt: Date.now()
     });
     if (price > 0) pushToGlobalCatalog(name, brand, flavor, price, 'pcs');
@@ -1306,6 +1234,7 @@ window.addManualItem = () => {
       pricePerKg: pricePerKg,
       inputUnit: manualUnitMode === 'kg' ? 'kg' : 'g',
       priceUnitMode: manualUnitMode === 'kg' ? '1kg' : '100g',
+      isNew: true,
       done: false, photo: null, createdAt: Date.now()
     });
 
@@ -1379,20 +1308,24 @@ function applyPriceEdit(saveToDb) {
       it.pricePerKg = Math.round(val * 10 * 100) / 100;
     }
     it.price = Math.round((it.pricePerKg * it.grams / 1000) * 100) / 100;
-    if (saveToDb && it.pricePerKg > 0) pushToGlobalCatalog(it.text, it.brand, it.flavor, it.pricePerKg, 'kg');
+    // Автоматически сохраняем в базу
+    if (it.pricePerKg > 0) pushToGlobalCatalog(it.text, it.brand, it.flavor, it.pricePerKg, 'kg');
   } else {
     it.price = Math.round(val * 100) / 100;
-    if (saveToDb && it.price > 0) pushToGlobalCatalog(it.text, it.brand, it.flavor, it.price, 'pcs');
+    // Автоматически сохраняем в базу
+    if (it.price > 0) pushToGlobalCatalog(it.text, it.brand, it.flavor, it.price, 'pcs');
   }
+  
+  it.isNew = false;
+  
   save(); render();
   closePriceEdit();
 }
 
-document.getElementById('priceEditSave').onclick   = () => applyPriceEdit(false);
-document.getElementById('priceEditSaveDb').onclick = () => applyPriceEdit(true);
+document.getElementById('priceEditSave').onclick = () => applyPriceEdit(true);
 document.getElementById('priceEditCancel').onclick = closePriceEdit;
 priceEditModal.addEventListener('click', (e) => { if (e.target === priceEditModal) closePriceEdit(); });
-priceEditInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') applyPriceEdit(false); });
+priceEditInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') applyPriceEdit(true); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closePriceEdit(); closeWeightModal(); } });
 
 /* ---------- Рендер чека ---------- */
@@ -1403,7 +1336,6 @@ window.render = function() {
   if (items.length === 0) {
     list.innerHTML = `<div style="text-align:center;color:#666;padding:20px 0">${t('empty')}</div>`;
     document.getElementById('totals').style.display = 'none';
-    updateWatermark();
     return;
   }
 
@@ -1437,7 +1369,9 @@ window.render = function() {
     const textEl = document.createElement('div');
     textEl.className = 'text';
     const details = [item.brand, item.flavor].filter(Boolean).join(', ');
-    textEl.textContent = item.text + (details ? ' (' + details + ')' : '');
+    // Добавляем метку "новый", если это новый товар
+    const newLabel = item.isNew ? `<span class="new-badge">${t('newItem')}</span>` : '';
+    textEl.innerHTML = item.text + (details ? ' (' + details + ')' : '') + newLabel;
     textEl.onclick = () => toggleItem(item.id);
     textWrap.appendChild(textEl);
     topRow.appendChild(textWrap);
@@ -1510,7 +1444,6 @@ window.render = function() {
   document.getElementById('totalQty').textContent = totalQty;
   document.getElementById('sumAll').textContent = formatPrice(sumAll);
   document.getElementById('sumLeft').textContent = formatPrice(sumLeft);
-  updateWatermark();
 }
 
 function formatPrice(n) {
@@ -1533,7 +1466,13 @@ function doScreenshot() {
   catalogWrapper.classList.add('hide-for-screenshot');
   toggleBtn.classList.add('hide-for-screenshot');
   setTimeout(() => {
-    html2canvas(element, { scale: 2, backgroundColor: '#ffffff', useCORS: true, logging: false }).then(canvas => {
+    html2canvas(element, { 
+      scale: 2, 
+      backgroundColor: '#ffffff', 
+      useCORS: true, 
+      logging: false,
+      windowHeight: element.scrollHeight 
+    }).then(canvas => {
       catalogWrapper.classList.remove('hide-for-screenshot');
       toggleBtn.classList.remove('hide-for-screenshot');
       if (wasHidden) catalogWrapper.classList.add('hidden');
@@ -1597,17 +1536,7 @@ document.addEventListener('keyup', (e) => {
   if (e.key === 'PrintScreen') triggerScreenshotBlur();
 });
 
-function updateWatermark() {
-  const el = document.getElementById('receiptWatermark');
-  if (!el) return;
-  const now = new Date();
-  const locale = currentLang === 'en' ? 'en-GB' : 'ru-RU';
-  const dateStr = now.toLocaleDateString(locale);
-  const timeStr = now.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-  el.textContent = t('protectedWm') + ' • ' + dateStr + ' ' + timeStr;
-}
-
-/* ---------- Меню ---------- */
+/* ---------- Меню и полезные функции ---------- */
 const menuBtn = document.getElementById('menuBtn');
 const closeBtn = document.getElementById('closeBtn');
 const sideMenu = document.getElementById('sideMenu');
@@ -1651,8 +1580,35 @@ document.querySelectorAll('.side-menu a[data-menu]').forEach(link => {
     if (key === 'settings') openAppModal('modalSettings');
     if (key === 'support')  openAppModal('modalSupport');
     if (key === 'language') openAppModal('modalLanguage');
+    if (key === 'clear') {
+      if (confirm('Очистить чек?')) {
+        items = [];
+        save(); render();
+        closeMenu();
+      }
+    }
+    if (key === 'export') {
+      exportReceipt();
+      closeMenu();
+    }
   });
 });
+
+function exportReceipt() {
+  if (items.length === 0) { alert('Чек пуст'); return; }
+  let text = `КАССОВЫЙ ЧЕК\n${document.getElementById('dateTime').textContent}\n\n`;
+  let sum = 0;
+  items.forEach(it => {
+    text += `${it.text} ${it.qty} ${t('qtyShort')} x ${formatPrice(it.price)} = ${formatPrice(it.price * it.qty)}\n`;
+    sum += it.price * it.qty;
+  });
+  text += `\nИТОГО: ${formatPrice(sum)}`;
+  navigator.clipboard.writeText(text).then(() => {
+    alert('Текст чека скопирован в буфер обмена!');
+  }).catch(() => {
+    alert('Не удалось скопировать текст.');
+  });
+}
 
 document.querySelectorAll('.app-modal').forEach(modal => {
   modal.addEventListener('click', (e) => {
@@ -1699,4 +1655,4 @@ listenToGlobalCatalog();
 applyLanguage(currentLang);
 </script>
 </body>
-</html>
+ </html>
